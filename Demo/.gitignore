@@ -1,0 +1,13 @@
+*.7z
+*.bz2
+
+data.train
+data.test
+mnist
+mnist.t
+
+!01_BinaryClassification1/data.*
+!02_BinaryClassification2/data.*
+
+XNN.model
+pred.txt
