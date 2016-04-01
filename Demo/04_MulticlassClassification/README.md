@@ -17,6 +17,16 @@ TensorFlowのチュートリアルを真似しようと思ってみたけど、
 	====== 学習 ======
 	ネットワーク: 780 - (32 x 1) - 10
 	(省略)
+	検証: out[0] : train={MAE= 0.4% RMSE= 4.4%} test={MAE= 0.6% RMSE= 6.0%}
+	検証: out[1] : train={MAE= 0.4% RMSE= 3.9%} test={MAE= 0.4% RMSE= 4.7%}
+	検証: out[2] : train={MAE= 0.8% RMSE= 5.7%} test={MAE= 0.9% RMSE= 6.8%}
+	検証: out[3] : train={MAE= 0.9% RMSE= 5.9%} test={MAE= 1.0% RMSE= 6.8%}
+	検証: out[4] : train={MAE= 0.7% RMSE= 5.1%} test={MAE= 0.9% RMSE= 7.0%}
+	検証: out[5] : train={MAE= 0.8% RMSE= 5.8%} test={MAE= 0.9% RMSE= 6.8%}
+	検証: out[6] : train={MAE= 0.4% RMSE= 3.8%} test={MAE= 0.7% RMSE= 6.2%}
+	検証: out[7] : train={MAE= 0.6% RMSE= 4.9%} test={MAE= 0.9% RMSE= 6.7%}
+	検証: out[8] : train={MAE= 1.0% RMSE= 6.5%} test={MAE= 1.2% RMSE= 7.6%}
+	検証: out[9] : train={MAE= 1.0% RMSE= 6.3%} test={MAE= 1.1% RMSE= 7.5%}
 	保存完了: XNN.model
 	====== 検証 ======
 	class[0]: 適合率=96.6% 再現率=99.0% F値=97.8% 選択率=10.0%
@@ -30,4 +40,37 @@ TensorFlowのチュートリアルを真似しようと思ってみたけど、
 	class[8]: 適合率=97.3% 再現率=95.3% F値=96.3% 選択率= 9.5%
 	class[9]: 適合率=96.9% 再現率=95.8% F値=96.4% 選択率=10.0%
 	average:  適合率=97.1% 再現率=97.1% F値=97.1%
+
+ちょっと大きくしてみたけどそれほど改善せず。(hidden_units=256 hidden_layers=5)
+オーバーフィッティング気味かも。
+
+	====== 学習 ======
+	訓練データ: 60000件
+	検証データ: 10000件
+	ネットワーク: 780 - (256 x 5) - 10
+	(略)
+	検証: out[0] : train={MAE= 0.1% RMSE= 1.7%} test={MAE= 0.3% RMSE= 4.5%}
+	検証: out[1] : train={MAE= 0.1% RMSE= 1.6%} test={MAE= 0.2% RMSE= 4.3%}
+	検証: out[2] : train={MAE= 0.2% RMSE= 3.4%} test={MAE= 0.6% RMSE= 6.5%}
+	検証: out[3] : train={MAE= 0.3% RMSE= 3.7%} test={MAE= 0.6% RMSE= 6.8%}
+	検証: out[4] : train={MAE= 0.1% RMSE= 2.8%} test={MAE= 0.5% RMSE= 5.8%}
+	検証: out[5] : train={MAE= 0.2% RMSE= 3.1%} test={MAE= 0.5% RMSE= 6.1%}
+	検証: out[6] : train={MAE= 0.1% RMSE= 1.5%} test={MAE= 0.3% RMSE= 4.7%}
+	検証: out[7] : train={MAE= 0.3% RMSE= 3.8%} test={MAE= 0.6% RMSE= 6.7%}
+	検証: out[8] : train={MAE= 0.3% RMSE= 3.8%} test={MAE= 0.7% RMSE= 7.2%}
+	検証: out[9] : train={MAE= 0.2% RMSE= 3.4%} test={MAE= 0.6% RMSE= 6.4%}
+	学習終了
+	保存完了: XNN.model
+	====== 検証 ======
+	class[0]: 適合率=98.9% 再現率=98.4% F値=98.6% 選択率= 9.8%
+	class[1]: 適合率=98.9% 再現率=98.9% F値=98.9% 選択率=11.3%
+	class[2]: 適合率=95.6% 再現率=99.0% F値=97.3% 選択率=10.7%
+	class[3]: 適合率=96.3% 再現率=98.1% F値=97.2% 選択率=10.3%
+	class[4]: 適合率=97.9% 再現率=98.0% F値=97.9% 選択率= 9.8%
+	class[5]: 適合率=98.7% 再現率=96.1% F値=97.4% 選択率= 8.7%
+	class[6]: 適合率=98.7% 再現率=98.5% F値=98.6% 選択率= 9.6%
+	class[7]: 適合率=95.9% 再現率=98.6% F値=97.3% 選択率=10.6%
+	class[8]: 適合率=98.1% 再現率=95.4% F値=96.7% 選択率= 9.5%
+	class[9]: 適合率=98.8% 再現率=96.0% F値=97.4% 選択率= 9.8%
+	average:  適合率=97.8% 再現率=97.8% F値=97.7%
 
