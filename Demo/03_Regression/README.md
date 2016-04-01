@@ -14,7 +14,8 @@ https://www.dropbox.com/s/1b27y25dhity4bc/03_Regression.7z?dl=0
 実行結果
 --------
 
-* hidden_units=16 hidden_layers=1
+hidden_units=16 hidden_layers=1
+
 
 	====== 学習 ======
 	ネットワーク: 1858 - (16 x 1) - 1
@@ -24,7 +25,9 @@ https://www.dropbox.com/s/1b27y25dhity4bc/03_Regression.7z?dl=0
 	====== 検証 ======
 	MAE= 7.5% RMSE=10.1%
 
-* hidden_units=128 hidden_layers=1
+
+hidden_units=128 hidden_layers=1
+
 
 	====== 学習 ======
 	ネットワーク: 1858 - (128 x 1) - 1
@@ -35,7 +38,9 @@ https://www.dropbox.com/s/1b27y25dhity4bc/03_Regression.7z?dl=0
 	====== 検証 ======
 	MAE= 7.3% RMSE=10.0%
 
-* hidden_units=32 hidden_layers=10
+
+hidden_units=32 hidden_layers=10
+
 
 	====== 学習 ======
 	ネットワーク: 1858 - (32 x 10) - 1
@@ -45,5 +50,6 @@ https://www.dropbox.com/s/1b27y25dhity4bc/03_Regression.7z?dl=0
 	保存完了: XNN.model
 	====== 検証 ======
 	MAE= 7.4% RMSE=10.0%
+
 
 少し大きくしてみたけどあんまり変わらず。
