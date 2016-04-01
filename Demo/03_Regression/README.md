@@ -6,9 +6,6 @@
 
 ロジスティック回帰なのでラベルは[0, 1]にする必要がある。
 
-データはこちら。
-https://www.dropbox.com/s/1b27y25dhity4bc/03_Regression.7z?dl=0
-
 
 
 実行結果

@@ -2,7 +2,7 @@
 ======================
 
 多クラス分類の定番、MNIST。
-データはここからmnist.bz2とmnist.t.bz2を。
+データはここから。
 https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/multiclass.html
 
 多クラス分類の場合、ラベルは[0, out_units)にする必要あり。

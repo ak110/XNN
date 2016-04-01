@@ -1,6 +1,3 @@
-*.7z
-*.bz2
-
 data.train
 data.test
 mnist
