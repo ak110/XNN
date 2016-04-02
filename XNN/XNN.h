@@ -55,7 +55,7 @@ namespace XNN {
 		// 学習の途中経過を多めに出すなら1。既定値も1。(データやネットワークが大きい時用)
 		int32_t verbose = 1;
 		// 念のため互換性用
-		int32_t reserved[64];
+		int32_t reserved[65];
 		// 初期化
 		XNNParams(int inUnits, int hiddenUnits, int outUnits, int hiddenLayers)
 			: inUnits(inUnits), hiddenUnits(hiddenUnits), outUnits(outUnits), hiddenLayers(hiddenLayers) {}

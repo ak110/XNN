@@ -1,19 +1,19 @@
-
+ï»¿
 #include <gtest/gtest.h>
 #define main ___main
 #include "../XNN/Main.cpp"
 #undef main
 
 int main(int argc, char* argv[]) {
-	::testing::GTEST_FLAG(break_on_failure) = true;   // JITƒfƒoƒbƒO‚·‚é‚½‚ß(Šù’è‚Å‚ÍƒeƒXƒg¸”s‚É‚È‚é)
-	::testing::GTEST_FLAG(catch_exceptions) = false;  // JITƒfƒoƒbƒO‚·‚é‚½‚ß(Šù’è‚Å‚ÍƒeƒXƒg¸”s‚É‚È‚é)
+	::testing::GTEST_FLAG(break_on_failure) = true;   // JITãƒ‡ãƒãƒƒã‚°ã™ã‚‹ãŸã‚(æ—¢å®šã§ã¯ãƒ†ã‚¹ãƒˆå¤±æ•—ã«ãªã‚‹)
+	::testing::GTEST_FLAG(catch_exceptions) = false;  // JITãƒ‡ãƒãƒƒã‚°ã™ã‚‹ãŸã‚(æ—¢å®šã§ã¯ãƒ†ã‚¹ãƒˆå¤±æ•—ã«ãªã‚‹)
 	::testing::InitGoogleTest(&argc, argv);
 	return RUN_ALL_TESTS();
 }
 
-// and, or, xor‚ğŠwK‚µ‚Ä‚İ‚é
+// and, or, xorã‚’å­¦ç¿’ã—ã¦ã¿ã‚‹
 TEST(Main, Heavy_AndOrXor) {
-	// ƒf[ƒ^‚ğì‚é
+	// ãƒ‡ãƒ¼ã‚¿ã‚’ä½œã‚‹
 	vector<XNNData> data;
 	for (int x = 0; x < 2; x++) {
 		for (int y = 0; y < 2; y++) {
@@ -27,7 +27,8 @@ TEST(Main, Heavy_AndOrXor) {
 		}
 	}
 
-	XNNParams params(2, 4, 3, 0);
+	XNNParams params(2, 8, 3, 1);
+	params.verbose = 0;
 	XNNModel dnn(params);
 	dnn.Train(vector<XNNData>(data), vector<XNNData>(data));
 

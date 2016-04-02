@@ -212,3 +212,7 @@ _Pvt_Extensions/
 ModelManifest.xml
 
 *.opendb
+
+*.o
+XNN/XNN
+XNNTest/XNNTest

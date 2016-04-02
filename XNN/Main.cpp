@@ -1,4 +1,4 @@
-
+ï»¿
 #include "XNN.h"
 #include <boost/algorithm/string.hpp>
 #include <iostream>
@@ -8,8 +8,8 @@
 using namespace XNN;
 
 int Usage() {
-	cerr << "g‚¢•û: XNN <config> [<options>]" << endl;
-	cerr << "  <options>  xxx=yyyŒ`®‚ÅAconfig‚Ì€–Ú‚ğã‘‚«o—ˆ‚Ü‚·B" << endl;
+	cerr << "ä½¿ã„æ–¹: XNN <config> [<options>]" << endl;
+	cerr << "  <options>  xxx=yyyå½¢å¼ã§ã€configã®é …ç›®ã‚’ä¸Šæ›¸ãå‡ºæ¥ã¾ã™ã€‚" << endl;
 	cerr << endl;
 	return 1;
 }
@@ -19,7 +19,7 @@ struct Config {
 	void Add(const string& name, const string& value) {
 		config[boost::trim_copy(name)] = boost::trim_copy(value);
 	}
-	const string& Get(const string& name, const string& defaultValue = string()) const {
+	string Get(const string& name, const string& defaultValue = string()) const {
 		auto it = config.find(name);
 		if (it != config.end())
 			return it->second;
@@ -29,7 +29,7 @@ struct Config {
 		auto it = config.find(name);
 		if (it != config.end())
 			return it->second;
-		throw XNNException("ƒRƒ“ƒtƒBƒOƒtƒ@ƒCƒ‹‚¨‚æ‚ÑƒRƒ}ƒ“ƒhƒ‰ƒCƒ“‚Å " + name + " ‚ªw’è‚³‚ê‚Ä‚¢‚Ü‚¹‚ñB");
+		throw XNNException("ã‚³ãƒ³ãƒ•ã‚£ã‚°ãƒ•ã‚¡ã‚¤ãƒ«ãŠã‚ˆã³ã‚³ãƒãƒ³ãƒ‰ãƒ©ã‚¤ãƒ³ã§ " + name + " ãŒæŒ‡å®šã•ã‚Œã¦ã„ã¾ã›ã‚“ã€‚");
 	}
 	bool GetBool(const string& name, bool defaultValue) const {
 		auto s = Get(name, defaultValue ? "true" : "false");
@@ -37,7 +37,7 @@ struct Config {
 			return true;
 		if (s == "false")
 			return false;
-		throw XNNException(name + "‚Ì’l‚ª•s³: " + s);
+		throw XNNException(name + "ã®å€¤ãŒä¸æ­£: " + s);
 	}
 	XNNParams CreateParams() const {
 		XNNParams params(
@@ -54,7 +54,7 @@ struct Config {
 		else if (objective == "multi:softmax")
 			params.objective = XNNObjective::MultiSoftmax;
 		else
-			throw XNNException("objective‚Ì’l‚ª•s³: " + objective);
+			throw XNNException("objectiveã®å€¤ãŒä¸æ­£: " + objective);
 
 		params.scaleInput = GetBool("scale_input", true) ? 1 : 0;
 		params.verbose = stoi(Get("verbose", "1"));
@@ -66,7 +66,7 @@ int Process(int argc, char* argv[]) {
 	string confPath;
 	unordered_map<string, string> argConfig;
 	Config config;
-	// ƒRƒ}ƒ“ƒhƒ‰ƒCƒ“‚Ìæ“¾
+	// ã‚³ãƒãƒ³ãƒ‰ãƒ©ã‚¤ãƒ³ã®å–å¾—
 	{
 		vector<string> args(argv + 1, argv + argc);
 		for (auto& a : args) {
@@ -82,21 +82,21 @@ int Process(int argc, char* argv[]) {
 	}
 	if (confPath == "")
 		return Usage();
-	// config‚Ì“Ç‚İ‚İ
+	// configã®èª­ã¿è¾¼ã¿
 	{
 		ifstream ifs(confPath);
 		if (!ifs)
-			throw XNNException("ƒRƒ“ƒtƒBƒOƒtƒ@ƒCƒ‹“Ç‚İ‚İ¸”sBƒtƒ@ƒCƒ‹=" + confPath);
+			throw XNNException("ã‚³ãƒ³ãƒ•ã‚£ã‚°ãƒ•ã‚¡ã‚¤ãƒ«èª­ã¿è¾¼ã¿å¤±æ•—ã€‚ãƒ•ã‚¡ã‚¤ãƒ«=" + confPath);
 		string line;
 		for (int lineCount = 1; getline(ifs, line); lineCount++) {
 			if (line.length() <= 0 || line[0] == '#')
-				continue; // ‹ósorƒRƒƒ“ƒg
+				continue; // ç©ºè¡Œorã‚³ãƒ¡ãƒ³ãƒˆ
 			auto eq = line.find('=');
 			if (eq == string::npos)
-				throw XNNException("ƒRƒ“ƒtƒBƒOƒtƒ@ƒCƒ‹“Ç‚İ‚İ¸”sBs=" + to_string(lineCount));
+				throw XNNException("ã‚³ãƒ³ãƒ•ã‚£ã‚°ãƒ•ã‚¡ã‚¤ãƒ«èª­ã¿è¾¼ã¿å¤±æ•—ã€‚è¡Œ=" + to_string(lineCount));
 			config.Add(line.substr(0, eq), line.substr(eq + 1));
 		}
-		// ˆø”‚Ì’l‚Åã‘‚«
+		// å¼•æ•°ã®å€¤ã§ä¸Šæ›¸ã
 		for (auto& p : argConfig)
 			config.Add(p.first, p.second);
 	}
@@ -110,7 +110,7 @@ int Process(int argc, char* argv[]) {
 			LoadSVMLight(config.GetRequired("data"), params.inUnits),
 			LoadSVMLight(config.GetRequired("test:data"), params.inUnits));
 		dnn.Save(modelPath);
-		cout << "•Û‘¶Š®—¹: " << modelPath << endl;
+		cout << "ä¿å­˜å®Œäº†: " << modelPath << endl;
 	} else if (task == "pred") {
 		auto params = config.CreateParams();
 		auto modelPath = config.Get("model_in", "XNN.model");
@@ -120,7 +120,7 @@ int Process(int argc, char* argv[]) {
 		cout << r.statistics << endl;
 		ofstream(predPath) << r.raw;
 	} else {
-		throw XNNException("task‚Ì’l‚ª•s³Btask=" + task);
+		throw XNNException("taskã®å€¤ãŒä¸æ­£ã€‚task=" + task);
 	}
 	return 0;
 }
@@ -129,7 +129,7 @@ int main(int argc, char* argv[]) {
 	try {
 		return Process(argc, argv);
 	} catch (std::exception& e) {
-		cerr << "ƒGƒ‰[: " << e.what() << endl;
+		cerr << "ã‚¨ãƒ©ãƒ¼: " << e.what() << endl;
 		return 1;
 	}
 }

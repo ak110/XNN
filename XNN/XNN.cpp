@@ -1,5 +1,4 @@
 ﻿#include "XNN.h"
-#include <omp.h>
 #include <atomic>
 #include <algorithm>
 #include <random>
@@ -15,10 +14,12 @@
 #include <array>
 #include <iostream>
 #include <iomanip>
-#include <cerrno>
+#include <cfloat>
 
+#ifdef _MSC_VER
 #pragma warning(disable : 4127) // 条件式が定数です。
 #pragma warning(disable : 4100) // 引数は関数の本体部で 1 度も参照されません。
+#endif
 
 namespace XNN {
 	using namespace std::chrono;
@@ -578,6 +579,8 @@ namespace XNN {
 		}
 		void Load(const string& path) {
 			ifstream fs(path, ios_base::binary);
+			if (!fs)
+				throw XNNException(path + "が開けませんでした。");
 			fs.read((char*)&params, sizeof params);
 			Initialize();
 			for (auto& l : layers)
@@ -603,7 +606,7 @@ namespace XNN {
 				new FullyConnectedLayer<ActivationFunction::ReLU>(
 					params.inUnits, params.hiddenUnits));
 
-			for (size_t i = 0; i < params.hiddenLayers - 1; i++)
+			for (int i = 0; i < params.hiddenLayers - 1; i++)
 				layers.emplace_back(
 					new FullyConnectedLayer<ActivationFunction::ReLU>(
 						params.hiddenUnits, params.hiddenUnits));
@@ -623,7 +626,7 @@ namespace XNN {
 		// データのチェック・変換
 		void CheckAndTransform(vector<XNNData>& data) const {
 			for (auto& d : data) {
-				if (d.in.size() != params.inUnits)
+				if ((int)d.in.size() != params.inUnits)
 					throw XNNException("入力ユニット数と入力データの次元数が不一致: " +
 						to_string(params.inUnits) + " => " +
 						to_string(d.in.size()));
@@ -641,7 +644,7 @@ namespace XNN {
 					d.out.resize(params.outUnits, 0);
 					d.out[classIndex] = 1;
 				} else {
-					if (d.out.size() != params.outUnits)
+					if ((int)d.out.size() != params.outUnits)
 						throw XNNException("出力ユニット数とラベルの数が不一致: " +
 							to_string(params.outUnits) + " => " +
 							to_string(d.out.size()));
@@ -684,7 +687,7 @@ namespace XNN {
 			// データが足りなければ増やす (整数倍に繰り返す)
 			// 最低10万を1セットとする。
 			size_t originalSize = trainData.size();
-			while (trainData.size() < params.minMiniBatchCount * params.miniBatchSize) {
+			while (trainData.size() < (size_t)params.minMiniBatchCount * params.miniBatchSize) {
 				for (size_t i = 0; i < originalSize; i++)
 					trainData.push_back(trainData[i]);
 			}
@@ -786,7 +789,7 @@ namespace XNN {
 			for (int i = 0; i < (int)trainers.size(); i++)
 				trainers[i]->Clear();
 
-			atomic<int> miniBatchIndex(0);
+			atomic<size_t> miniBatchIndex(0);
 #pragma omp parallel
 			{
 				vector<vector<float>> out(layers.size() + 1);
@@ -797,7 +800,7 @@ namespace XNN {
 				errorOut.reserve(params.hiddenUnits);
 
 				while (true) {
-					int index = miniBatchIndex++;
+					auto index = miniBatchIndex++;
 					if (count <= index)
 						break;
 					auto& data = trainData[startIndex + index];
@@ -833,8 +836,8 @@ namespace XNN {
 			for (int i = 0; i < (int)count; i++) {
 				auto& data = testData[startIndex + i];
 				auto pred = Predict(vector<float>(data.in));
-				assert(pred.size() == params.outUnits);
-				assert(data.out.size() == params.outUnits);
+				assert((int)pred.size() == params.outUnits);
+				assert((int)data.out.size() == params.outUnits);
 				for (size_t o = 0; o < pred.size(); o++)
 					score[o].Add(data.out[o] - pred[o]);
 			}
@@ -848,11 +851,11 @@ namespace XNN {
 			vector<unique_ptr<IScore>> score;
 			switch (params.objective) {
 			case XNNObjective::RegLogistic:
-				for (size_t i = 0; i < params.outUnits; i++)
+				for (int i = 0; i < params.outUnits; i++)
 					score.emplace_back(new RegressionScore());
 				break;
 			case XNNObjective::BinaryLogistic:
-				for (size_t i = 0; i < params.outUnits; i++)
+				for (int i = 0; i < params.outUnits; i++)
 					score.emplace_back(new ClassificationScore(2));
 				break;
 			case XNNObjective::MultiSoftmax:
@@ -867,8 +870,8 @@ namespace XNN {
 			for (int i = 0; i < (int)testData.size(); i++) {
 				auto& data = testData[i];
 				auto pred = Predict(vector<float>(data.in));
-				assert(pred.size() == params.outUnits);
-				assert(data.out.size() == params.outUnits);
+				assert((int)pred.size() == params.outUnits);
+				assert((int)data.out.size() == params.outUnits);
 				if (params.objective == XNNObjective::MultiSoftmax)
 					score[0]->Add(data.out, pred);
 				else
