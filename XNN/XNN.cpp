@@ -707,32 +707,39 @@ namespace XNN {
 			auto testIntervalEpoch = testSize * 10 / params.miniBatchSize;
 			auto testOnlyEnd = trainData.size() < (testIntervalEpoch * 2 * params.miniBatchSize);
 
-			vector<double> lastRMSE(params.outUnits, numeric_limits<double>::max());
+			double lastRMSE = numeric_limits<double>::max();
 			auto toBeStop = [&](bool checkStop) {
 				// 訓練誤差・検証誤差の算出
 				auto pred1 = Predict(trainData, 0, min(trainData.size(), testSize));
 				auto pred2 = Predict(testData, 0, testData.size());
-				assert(lastRMSE.size() == pred2.size());
+				assert(pred1.size() == pred2.size());
 				// 表示
-				for (size_t o = 0; o < pred2.size(); o++)
-					cout << "検証: out[" << o << "] :"
-					<< " train={" << pred1[o].ToString() << "}"
-					<< " test={" << pred2[o].ToString() << "}"
-					<< endl;
+				if (1 <= params.verbose || pred2.size() <= 1) {
+					for (size_t o = 0; o < pred2.size(); o++)
+						cout << "検証: out[" << o << "] :"
+						<< " train={" << pred1[o].ToString() << "}"
+						<< " test={" << pred2[o].ToString() << "}"
+						<< endl;
+				}
+				RegressionScore average1, average2;
+				for (size_t o = 0; o < pred2.size(); o++) {
+					average1 += pred1[o];
+					average2 += pred2[o];
+				}
+				if (1 < pred2.size()) {
+					cout << "検証: average:"
+						<< " train={" << average1.ToString() << "}"
+						<< " test={" << average2.ToString() << "}"
+						<< endl;
+				}
 				// 終了判定
 				if (checkStop) {
 					// 検証データのRMSEの差がstopDeltaRMSE未満になったら学習終了。
-					// (ただし最低でも訓練データを1回は使用する。)
-					bool stopAll = true;
-					for (size_t o = 0; o < pred2.size(); o++) {
-						auto rmse = pred2[o].GetRMSE();
-						auto delta = lastRMSE[o] - rmse;
-						lastRMSE[o] = rmse;
-						if (params.stopDeltaRMSE <= delta &&
-							params.stopDeltaRMSE <= rmse) // 0 <= rmseなので充分小さければ止まっていい
-							stopAll = false;
-					}
-					return stopAll;
+					auto rmse = average2.GetRMSE();
+					auto delta = lastRMSE - rmse;
+					lastRMSE = rmse;
+					return delta < params.stopDeltaRMSE ||
+						rmse < params.stopDeltaRMSE; // 0 <= rmseなので充分小さければ止まっていい
 				}
 				return false;
 			};
