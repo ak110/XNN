@@ -36,6 +36,7 @@ namespace XNN {
 		// ソフトマックス多クラス分類
 		MultiSoftmax,
 	};
+#pragma pack(push, 1)
 	// パラメータ
 	struct XNNParams {
 		// 目的関数
@@ -60,6 +61,8 @@ namespace XNN {
 		XNNParams(int inUnits, int hiddenUnits, int outUnits, int hiddenLayers)
 			: inUnits(inUnits), hiddenUnits(hiddenUnits), outUnits(outUnits), hiddenLayers(hiddenLayers) {}
 	};
+#pragma pack(pop)
+	static_assert(sizeof(XNNParams) == 304, "sizeof(XNNParams)");
 
 	// 学習器
 	class XNNModel {
