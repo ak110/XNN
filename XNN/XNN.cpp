@@ -200,7 +200,7 @@ namespace XNN {
 		}
 		// 追加(二値分類/回帰用)
 		void Add(float label, float pred) override {
-			Add(size_t(0.5 < label), size_t(0.5 < pred));
+			Add(size_t(0.5 <= label), size_t(0.5 <= pred));
 		}
 		void Add(size_t labelClass, size_t pickClass) {
 			if (labelClass == pickClass) {
