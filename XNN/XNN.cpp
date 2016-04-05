@@ -381,9 +381,9 @@ namespace XNN {
 		// 学習率を程よくするために、入力のL1ノルムの平均(の推定値)を受け取り、出力のL1ノルムの平均(の推定値)を返す。(順に伝搬させる)
 		void Initialize(const vector<XNNData>& data, mt19937_64& rnd, double inputNorm, double& outputNorm) {
 			// スケールの決定。とりあえず絶対値の最大値で割り算する感じにする。
-			for (size_t c = 0; c < data.size(); c++) {
+			for (auto& d : data) {
 				for (size_t i = 0; i < inUnits; i++) {
-					auto a = abs(data[c].in[i]);
+					auto a = abs(d.in[i]);
 					if (scale[i] < a)
 						scale[i] = a;
 				}
@@ -392,9 +392,9 @@ namespace XNN {
 				scale[i] = 1.0f / scale[i];
 			// 出力のL1ノルム
 			outputNorm = 0;
-			for (size_t c = 0; c < data.size(); c++) {
+			for (auto& d : data) {
 				for (size_t i = 0; i < inUnits; i++)
-					outputNorm += abs(data[c].in[i] * scale[i]);
+					outputNorm += abs(d.in[i] * scale[i]);
 			}
 			outputNorm /= data.size();
 		}
@@ -675,9 +675,9 @@ namespace XNN {
 				double inputNorm = NAN, outputNorm = NAN; // 初期値は使わないので適当
 				if (params.scaleInput == 0) { // スケーリングしない場合初期値が必要なので頑張って算出する。
 					inputNorm = 0.0;
-					for (size_t c = 0; c < trainData.size(); c++)
-						for (size_t i = 0; i < trainData[c].in.size(); i++)
-							inputNorm += abs(trainData[c].in[i]);
+					for (auto& d : trainData)
+						for (size_t i = 0; i < d.in.size(); i++)
+							inputNorm += abs(d.in[i]);
 					inputNorm /= trainData.size();
 				}
 				for (auto& l : layers) {
