@@ -55,8 +55,10 @@ namespace XNN {
 		double stopDeltaRMSE = 0.0005; // 0.05%
 		// 学習の途中経過を多めに出すなら1。既定値も1。(データやネットワークが大きい時用)
 		int32_t verbose = 1;
+		// 2クラス分類のときの正例(ラベルが1のデータ)の重み。
+		double scalePosWeight = -1;
 		// 念のため互換性用
-		int32_t reserved[65] = {};
+		int32_t reserved[63] = {};
 		// 初期化
 		XNNParams(int inUnits, int hiddenUnits, int outUnits, int hiddenLayers)
 			: inUnits(inUnits), hiddenUnits(hiddenUnits), outUnits(outUnits), hiddenLayers(hiddenLayers) {}

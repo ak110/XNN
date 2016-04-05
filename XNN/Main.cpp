@@ -58,6 +58,7 @@ struct Config {
 
 		params.scaleInput = GetBool("scale_input", true) ? 1 : 0;
 		params.verbose = stoi(Get("verbose", "1"));
+		params.scalePosWeight = stod(Get("scale_pos_weight", "-1.0"));
 		return params;
 	}
 };

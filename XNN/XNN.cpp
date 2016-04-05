@@ -668,6 +668,21 @@ namespace XNN {
 				cout << "検証データ: " << testData.size() << "件" << endl;
 			}
 
+			if (params.objective == XNNObjective::BinaryLogistic) {
+				// scale_pos_weightの自動設定
+				if (params.scalePosWeight < 0) {
+					if (params.outUnits == 1) {
+						array<size_t, 2> counts = { { 0, 0 } };
+						for (auto& d : trainData)
+							counts[(int)round(d.out[0])]++;
+						params.scalePosWeight = (double)counts[0] / counts[1];
+					} else {
+						params.scalePosWeight = 1.0;
+					}
+				}
+				cout << "scale_pos_weight = " << params.scalePosWeight << endl;
+			}
+
 			// シャッフル
 			shuffle(trainData.begin(), trainData.end(), mt);
 			// 重みなどの初期化
@@ -795,6 +810,13 @@ namespace XNN {
 			for (int i = 0; i < (int)trainers.size(); i++)
 				trainers[i]->Clear();
 
+			// scale_pos_weightの比率を保ちつつ、あまり極端な値にならないスケールを算出
+			// 例: scale_pos_weight=1なら{ 1, 1 }、10なら{ 0.1818, 1.818 }。
+			const array<float, 2> binaryScales = { {
+				2 / ((float)params.scalePosWeight + 1),
+				(float)params.scalePosWeight * 2 / ((float)params.scalePosWeight + 1),
+			} };
+
 			atomic<size_t> miniBatchIndex(0);
 #pragma omp parallel
 			{
@@ -821,6 +843,11 @@ namespace XNN {
 					TransformOutput(errorIn);
 					for (size_t i = 0; i < errorIn.size(); i++)
 						errorIn[i] = errorIn[i] - out.back()[i];
+					// scale_pos_weight
+					if (params.objective == XNNObjective::BinaryLogistic) {
+						for (size_t i = 0; i < errorIn.size(); i++)
+							errorIn[i] *= binaryScales[(int)round(data.out[i])];
+					}
 					// 逆伝搬
 					for (int i = (int)layers.size() - 1; 0 <= i; i--) {
 						layers[i]->Backward(*trainers[i],
