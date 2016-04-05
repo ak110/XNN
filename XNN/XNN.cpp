@@ -623,8 +623,8 @@ namespace XNN {
 			if (params.objective == XNNObjective::MultiSoftmax)
 				layers.emplace_back(new SoftmaxLayer());
 		}
-		// データのチェック・変換
-		void CheckAndTransform(vector<XNNData>& data) const {
+		// データのチェック
+		void CheckData(vector<XNNData>& data) const {
 			for (auto& d : data) {
 				if ((int)d.in.size() != params.inUnits)
 					throw XNNException("入力ユニット数と入力データの次元数が不一致: " +
@@ -634,15 +634,6 @@ namespace XNN {
 					if (d.out.size() != 1)
 						throw XNNException("他クラス分類でラベルが1つでない: ラベル数=" +
 							to_string(d.out.size()));
-					// クラスのindexからone hot vector形式に変換
-					int classIndex = (int)round(d.out[0]);
-					if (classIndex < 0 || params.outUnits <= classIndex)
-						throw XNNException("ラベルが不正: ラベル=" +
-							to_string(classIndex) + " 範囲=[0, " +
-							to_string(params.outUnits) + ")");
-					d.out[0] = 0;
-					d.out.resize(params.outUnits, 0);
-					d.out[classIndex] = 1;
 				} else {
 					if ((int)d.out.size() != params.outUnits)
 						throw XNNException("出力ユニット数とラベルの数が不一致: " +
@@ -651,12 +642,27 @@ namespace XNN {
 				}
 			}
 		}
+		// 多クラス分類の場合に、クラスのindexからone hot vector形式に変換
+		void TransformOutput(vector<float>& out) const {
+			if (params.objective == XNNObjective::MultiSoftmax) {
+				// クラスのindexからone hot vector形式に変換
+				int classIndex = (int)round(out[0]);
+				if (classIndex < 0 || params.outUnits <= classIndex)
+					throw XNNException("ラベルが不正: ラベル=" +
+						to_string(classIndex) + " 範囲=[0, " +
+						to_string(params.outUnits) + ")");
+				out[0] = 0;
+				out.resize(params.outUnits, 0);
+				out[classIndex] = 1;
+			}
+			assert((int)out.size() == params.outUnits);
+		}
 		// 学習
 		void Train(vector<XNNData>&& trainData, vector<XNNData>&& testData) {
 			mt.seed(5489); // fixed seed
 
-			CheckAndTransform(trainData);
-			CheckAndTransform(testData);
+			CheckData(trainData);
+			CheckData(testData);
 			if (1 <= params.verbose) {
 				cout << "訓練データ: " << trainData.size() << "件" << endl;
 				cout << "検証データ: " << testData.size() << "件" << endl;
@@ -812,6 +818,7 @@ namespace XNN {
 					// エラーを算出
 					// ロジスティック回帰／線形二乗誤差：教師 - 予測
 					errorIn = data.out;
+					TransformOutput(errorIn);
 					for (size_t i = 0; i < errorIn.size(); i++)
 						errorIn[i] = errorIn[i] - out.back()[i];
 					// 逆伝搬
@@ -834,10 +841,10 @@ namespace XNN {
 			vector<RegressionScore> score(params.outUnits);
 #pragma omp parallel for
 			for (int i = 0; i < (int)count; i++) {
-				auto& data = testData[startIndex + i];
-				auto pred = Predict(vector<float>(data.in));
+				auto data = testData[startIndex + i];
+				auto pred = Predict(move(data.in));
 				assert((int)pred.size() == params.outUnits);
-				assert((int)data.out.size() == params.outUnits);
+				TransformOutput(data.out);
 				for (size_t o = 0; o < pred.size(); o++)
 					score[o].Add(data.out[o] - pred[o]);
 			}
@@ -846,7 +853,7 @@ namespace XNN {
 
 		// 予測
 		XNNModel::PredictResult Predict(vector<XNNData>&& testData) {
-			CheckAndTransform(testData);
+			CheckData(testData);
 
 			vector<unique_ptr<IScore>> score;
 			switch (params.objective) {
@@ -871,7 +878,7 @@ namespace XNN {
 				auto& data = testData[i];
 				auto pred = Predict(vector<float>(data.in));
 				assert((int)pred.size() == params.outUnits);
-				assert((int)data.out.size() == params.outUnits);
+				TransformOutput(data.out);
 				if (params.objective == XNNObjective::MultiSoftmax)
 					score[0]->Add(data.out, pred);
 				else
