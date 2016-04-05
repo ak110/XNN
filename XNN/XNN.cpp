@@ -698,6 +698,64 @@ namespace XNN {
 					trainData.push_back(trainData[i]);
 			}
 
+			// ミニバッチに各クラスが均等に含まれるように調整する。
+			// (2クラス分類で出力が1つだけの場合と、多クラス分類のみ。)
+			if ((params.objective == XNNObjective::BinaryLogistic && params.outUnits == 1) ||
+				params.objective == XNNObjective::MultiSoftmax) {
+				// 各クラスの情報
+				auto classCount = params.objective == XNNObjective::BinaryLogistic ? 2 : params.outUnits;
+				struct ClassInfo { size_t picking, pickingFrac, picked = 0, total = 0; };
+				vector<ClassInfo> classes(classCount);
+				// 各クラスの個数を調べる
+				for (auto& d : trainData) {
+					assert(d.out.size() == 1);
+					classes[(int)round(d.out[0])].total++;
+				}
+				// 各ミニバッチの補正処理
+				auto miniBatchCount = trainData.size() / (size_t)params.miniBatchSize;
+				for (size_t mb = 0; mb < miniBatchCount; mb++) {
+					auto offset = mb * (size_t)params.miniBatchSize;
+					auto offsetEnd = offset + (size_t)params.miniBatchSize;
+					// 各クラスで今回のミニバッチに入れる個数を算出(端数切捨て)
+					for (int c = 0; c < classCount; c++) {
+						auto s = offsetEnd * classes[c].total -
+							classes[c].picked * trainData.size();
+						classes[c].picking = s / trainData.size();
+						classes[c].pickingFrac = s % trainData.size(); // 端数
+					}
+					// 切り捨てなので足りない場合があるので、その場合は最も端数が大きいものを1個増やす
+					while (true) {
+						size_t n = accumulate(classes.begin(), classes.end(), 0ull,
+							[](size_t x, const ClassInfo& ci) { return x + ci.picking; });
+						assert(n <= params.miniBatchSize);
+						if (params.miniBatchSize <= n)
+							break;
+						// 最も端数の大きい物を選んで1個増やす
+						auto it = max_element(classes.begin(), classes.end(),
+							[](const ClassInfo& x, const ClassInfo& y) {
+							return less<size_t>()(x.pickingFrac, y.pickingFrac);
+						});
+						it->picking++;
+						it->pickingFrac = 0;
+					}
+
+					// 整列
+					size_t skipCount = 0;
+					for (size_t o = offset; o < offsetEnd; o++) {
+						while (true) {
+							int c = (int)round(trainData[o].out[0]);
+							if (0 < classes[c].picking) {
+								classes[c].picked++;
+								classes[c].picking--;
+								break;
+							}
+							swap(trainData[o], trainData[offsetEnd + skipCount]);
+							skipCount++;
+						}
+					}
+				}
+			}
+
 			// 設定の確認のためネットワークの大きさを表示
 			cout << "ネットワーク: " << params.inUnits
 				<< " - (" << params.hiddenUnits << " x " << params.hiddenLayers
