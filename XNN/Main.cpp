@@ -118,8 +118,7 @@ int Process(int argc, char* argv[]) {
 		auto predPath = config.Get("name_pred", "pred.txt");
 		XNNModel dnn(modelPath);
 		auto r = dnn.Predict(LoadSVMLight(config.GetRequired("test:data"), params.inUnits));
-		cout << r.statistics << endl;
-		ofstream(predPath) << r.raw;
+		ofstream(predPath) << r;
 	} else {
 		throw XNNException("taskの値が不正。task=" + task);
 	}

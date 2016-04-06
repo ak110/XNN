@@ -659,6 +659,7 @@ namespace XNN {
 		}
 		// 学習
 		void Train(vector<XNNData>&& trainData, vector<XNNData>&& testData) {
+			auto startTime = high_resolution_clock::now();
 			mt.seed(5489); // fixed seed
 
 			CheckData(trainData);
@@ -801,8 +802,8 @@ namespace XNN {
 						break;
 			}
 
-			if (1 <= params.verbose)
-				cout << "学習終了" << endl;
+			auto dt = high_resolution_clock::now() - startTime;
+			cout << "学習完了: " << (duration_cast<milliseconds>(dt).count() / 1000.0) << "秒" << endl;
 		}
 		// ミニバッチによる更新
 		void PartialFit(const std::vector<XNNData>& trainData, size_t startIndex, size_t count) {
@@ -879,9 +880,19 @@ namespace XNN {
 		}
 
 		// 予測
-		XNNModel::PredictResult Predict(vector<XNNData>&& testData) {
+		string Predict(vector<XNNData>&& testData) {
 			CheckData(testData);
 
+			// 全データ分Predictする
+			vector<vector<float>> result;
+			result.reserve(testData.size());
+			auto startTime = high_resolution_clock::now();
+			for (auto& d : testData)
+				result.emplace_back(Predict(move(d.in)));
+			auto milliSecPerPredict = testData.size() * 1e6 / duration_cast<nanoseconds>(
+				high_resolution_clock::now() - startTime).count();
+
+			// 結果の集計・整形
 			vector<unique_ptr<IScore>> score;
 			switch (params.objective) {
 			case XNNObjective::RegLogistic:
@@ -898,13 +909,11 @@ namespace XNN {
 			default:
 				assert(false);
 			}
-
-			stringstream stat, raw;
+			stringstream raw;
 			raw << fixed << setprecision(7);
-			for (int i = 0; i < (int)testData.size(); i++) {
+			for (int i = 0; i < (int)result.size(); i++) {
 				auto& data = testData[i];
-				auto pred = Predict(vector<float>(data.in));
-				assert((int)pred.size() == params.outUnits);
+				auto& pred = result[i];
 				TransformOutput(data.out);
 				if (params.objective == XNNObjective::MultiSoftmax)
 					score[0]->Add(data.out, pred);
@@ -918,26 +927,28 @@ namespace XNN {
 				}
 				raw << endl;
 			}
-
 			for (size_t o = 0; o < score.size(); o++) {
 				if (2 <= score.size())
-					stat << "--------------------------- out[" << o << "] ---------------------------" << endl;
-				stat << score[o]->ToString();
+					cout << "--------------------------- out[" << o << "] ---------------------------" << endl;
+				cout << score[o]->ToString();
 				if (params.objective == XNNObjective::RegLogistic)
-					stat << endl; // TODO:そのうちなんとかする
+					cout << endl; // TODO:そのうちなんとかする
 			}
 
-			return{ stat.str(), raw.str() };
+			cout << "検証完了: " << milliSecPerPredict << "ミリ秒/回" << endl;
+			return raw.str();
 		}
 
 		// 予測
 		vector<float> Predict(vector<float>&& in) const {
+			assert((int)in.size() == params.inUnits);
 			vector<float> out;
 			out.reserve(params.hiddenUnits);
 			for (size_t i = 0; i < layers.size(); i++) {
 				layers[i]->Forward(in, out);
 				swap(in, out);
 			}
+			assert((int)in.size() == params.outUnits);
 			return in;
 		}
 	};
@@ -1013,7 +1024,7 @@ namespace XNN {
 	void XNNModel::Train(vector<XNNData>&& trainData, vector<XNNData>&& testData) {
 		impl->Train(move(trainData), move(testData));
 	}
-	XNNModel::PredictResult XNNModel::Predict(vector<XNNData>&& testData) const {
+	string XNNModel::Predict(vector<XNNData>&& testData) const {
 		return impl->Predict(move(testData));
 	}
 	vector<float> XNNModel::Predict(vector<float>&& in) const {

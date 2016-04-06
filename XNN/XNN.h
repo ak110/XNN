@@ -75,16 +75,14 @@ namespace XNN {
 		XNNModel(const string& path);
 		~XNNModel();
 
-		struct PredictResult { string statistics, raw; };
-
 		// モデルの保存
 		void Save(const string& path) const;
 		// モデルの読み込み
 		void Load(const string& path);
 		// 学習
 		void Train(vector<XNNData>&& trainData, vector<XNNData>&& testData);
-		// 評価して文字列化
-		PredictResult Predict(vector<XNNData>&& testData) const;
+		// 評価(集計結果をcoutに出して、生の値をstringで返す。)
+		string Predict(vector<XNNData>&& testData) const;
 		// 評価(スレッドセーフ、非並列)
 		vector<float> Predict(vector<float>&& in) const;
 	};
