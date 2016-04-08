@@ -889,8 +889,9 @@ namespace XNN {
 			auto startTime = high_resolution_clock::now();
 			for (auto& d : testData)
 				result.emplace_back(Predict(move(d.in)));
-			auto milliSecPerPredict = testData.size() * 1e6 / duration_cast<nanoseconds>(
+			auto milliSec = duration_cast<milliseconds>(
 				high_resolution_clock::now() - startTime).count();
+			auto milliSecPerPredict = (double)milliSec / testData.size();
 
 			// 結果の集計・整形
 			vector<unique_ptr<IScore>> score;
