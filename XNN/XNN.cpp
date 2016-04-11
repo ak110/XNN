@@ -384,12 +384,15 @@ namespace XNN {
 			for (size_t i = 0; i < inUnits; i++)
 				scale[i] = 1.0f / scale[i];
 			// 出力のL1ノルム
-			outputNorm = 0;
+			double l1 = 0;
 			for (auto& d : data) {
-				for (size_t i = 0; i < inUnits; i++)
-					outputNorm += abs(d.in[i] * scale[i]);
+				for (size_t i = 0; i < inUnits; i++) {
+					auto x = d.in[i] * scale[i];
+					if (isnormal(x))
+						l1 += abs(x);
+				}
 			}
-			outputNorm /= data.size();
+			outputNorm = l1 / data.size();
 		}
 		// 学習するクラスを作る
 		unique_ptr<ILayerTrainer> CreateTrainer() override {
@@ -715,7 +718,8 @@ namespace XNN {
 					inputNorm = 0.0;
 					for (auto& d : trainData)
 						for (size_t i = 0; i < d.in.size(); i++)
-							inputNorm += abs(d.in[i]);
+							if (isnormal(d.in[i]))
+								inputNorm += abs(d.in[i]);
 					inputNorm /= trainData.size();
 				}
 				for (auto& l : layers) {
@@ -755,9 +759,6 @@ namespace XNN {
 
 			double lastRMSE = numeric_limits<double>::max();
 			for (size_t loop = 0; ; loop++) {
-				// シャッフル
-				shuffle(trainData.begin(), trainData.end(), mt);
-
 				// 学習
 				{
 					ProgressTimer timer;
@@ -782,6 +783,7 @@ namespace XNN {
 				auto pred1 = Predict(trainData, 0, testSize);
 				auto pred2 = Predict(trainData, trainSize, testSize);
 				assert(pred1.size() == pred2.size());
+
 				// 表示
 				if (1 <= params.verbose || pred2.size() <= 1) {
 					for (size_t o = 0; o < pred2.size(); o++)
@@ -801,6 +803,7 @@ namespace XNN {
 						<< " test={" << average2.ToString() << "}"
 						<< endl;
 				}
+
 				// 終了判定
 				// 検証データのRMSEの差がstopDeltaRMSE未満になったら学習終了。
 				auto rmse = average2.GetRMSE();
@@ -809,6 +812,9 @@ namespace XNN {
 				if (delta < params.stopDeltaRMSE ||
 					rmse < params.stopDeltaRMSE) // 0 <= rmseなので充分小さければ止まっていい
 					break;
+
+				// シャッフル
+				shuffle(trainData.begin(), trainData.end(), mt);
 			}
 
 			auto dt = high_resolution_clock::now() - startTime;
