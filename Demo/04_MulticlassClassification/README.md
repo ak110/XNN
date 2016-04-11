@@ -9,68 +9,36 @@ https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/multiclass.html
 
 TensorFlowのチュートリアルを真似しようと思ってみたけど、
 構造上2層に出来なくて3層になってしまった。
-(のでちょっと正解率が高い。97.1%。)
+(のでちょっと正解率が高い)
+
 
 実行結果
 --------
 
 	====== 学習 ======
 	ネットワーク: 780 - (32 x 1) - 10
-	(省略)
-	検証: out[0] : train={MAE= 0.4% RMSE= 4.4%} test={MAE= 0.6% RMSE= 6.0%}
-	検証: out[1] : train={MAE= 0.4% RMSE= 3.9%} test={MAE= 0.4% RMSE= 4.7%}
-	検証: out[2] : train={MAE= 0.8% RMSE= 5.7%} test={MAE= 0.9% RMSE= 6.8%}
-	検証: out[3] : train={MAE= 0.9% RMSE= 5.9%} test={MAE= 1.0% RMSE= 6.8%}
-	検証: out[4] : train={MAE= 0.7% RMSE= 5.1%} test={MAE= 0.9% RMSE= 7.0%}
-	検証: out[5] : train={MAE= 0.8% RMSE= 5.8%} test={MAE= 0.9% RMSE= 6.8%}
-	検証: out[6] : train={MAE= 0.4% RMSE= 3.8%} test={MAE= 0.7% RMSE= 6.2%}
-	検証: out[7] : train={MAE= 0.6% RMSE= 4.9%} test={MAE= 0.9% RMSE= 6.7%}
-	検証: out[8] : train={MAE= 1.0% RMSE= 6.5%} test={MAE= 1.2% RMSE= 7.6%}
-	検証: out[9] : train={MAE= 1.0% RMSE= 6.3%} test={MAE= 1.1% RMSE= 7.5%}
+	検証: average: train={MAE= 2.0% RMSE= 9.0%} test={MAE= 2.1% RMSE= 9.4%}
+	検証: average: train={MAE= 1.5% RMSE= 8.0%} test={MAE= 1.5% RMSE= 7.9%}
+	検証: average: train={MAE= 1.2% RMSE= 6.9%} test={MAE= 1.2% RMSE= 7.3%}
+	検証: average: train={MAE= 1.0% RMSE= 6.6%} test={MAE= 1.1% RMSE= 6.8%}
+	検証: average: train={MAE= 0.9% RMSE= 6.0%} test={MAE= 0.9% RMSE= 6.1%}
+	検証: average: train={MAE= 0.8% RMSE= 5.5%} test={MAE= 0.8% RMSE= 5.8%}
+	検証: average: train={MAE= 0.7% RMSE= 5.2%} test={MAE= 0.8% RMSE= 5.6%}
+	検証: average: train={MAE= 0.7% RMSE= 5.2%} test={MAE= 0.7% RMSE= 5.2%}
+	検証: average: train={MAE= 0.6% RMSE= 4.8%} test={MAE= 0.6% RMSE= 5.2%}
+	学習完了: 99.591秒
 	保存完了: XNN.model
 	====== 検証 ======
-	class[0]: 適合率=96.6% 再現率=99.0% F値=97.8% 選択率=10.0%
-	class[1]: 適合率=98.8% 再現率=98.7% F値=98.7% 選択率=11.3%
-	class[2]: 適合率=95.7% 再現率=98.3% F値=96.9% 選択率=10.6%
-	class[3]: 適合率=95.5% 再現率=97.9% F値=96.7% 選択率=10.4%
-	class[4]: 適合率=96.8% 再現率=96.5% F値=96.7% 選択率= 9.8%
-	class[5]: 適合率=97.8% 再現率=95.7% F値=96.8% 選択率= 8.7%
-	class[6]: 適合率=98.4% 再現率=96.5% F値=97.4% 選択率= 9.4%
-	class[7]: 適合率=97.3% 再現率=96.8% F値=97.0% 選択率=10.2%
-	class[8]: 適合率=97.3% 再現率=95.3% F値=96.3% 選択率= 9.5%
-	class[9]: 適合率=96.9% 再現率=95.8% F値=96.4% 選択率=10.0%
+	class[0]: 適合率=97.5% 再現率=98.3% F値=97.9% 選択率= 9.9%
+	class[1]: 適合率=98.9% 再現率=98.8% F値=98.8% 選択率=11.3%
+	class[2]: 適合率=95.9% 再現率=97.8% F値=96.8% 選択率=10.5%
+	class[3]: 適合率=96.7% 再現率=97.2% F値=96.9% 選択率=10.2%
+	class[4]: 適合率=97.6% 再現率=96.5% F値=97.1% 選択率= 9.7%
+	class[5]: 適合率=96.6% 再現率=96.7% F値=96.7% 選択率= 8.9%
+	class[6]: 適合率=97.9% 再現率=97.0% F値=97.4% 選択率= 9.5%
+	class[7]: 適合率=97.3% 再現率=97.2% F値=97.2% 選択率=10.3%
+	class[8]: 適合率=95.0% 再現率=96.7% F値=95.8% 選択率= 9.9%
+	class[9]: 適合率=98.0% 再現率=94.9% F値=96.4% 選択率= 9.8%
 	average:  適合率=97.1% 再現率=97.1% F値=97.1%
-
-ちょっと大きくしてみたけどそれほど改善せず。(hidden_units=256 hidden_layers=5)
-オーバーフィッティング気味かも。
-
-	====== 学習 ======
-	訓練データ: 60000件
-	検証データ: 10000件
-	ネットワーク: 780 - (256 x 5) - 10
-	(略)
-	検証: out[0] : train={MAE= 0.1% RMSE= 1.7%} test={MAE= 0.3% RMSE= 4.5%}
-	検証: out[1] : train={MAE= 0.1% RMSE= 1.6%} test={MAE= 0.2% RMSE= 4.3%}
-	検証: out[2] : train={MAE= 0.2% RMSE= 3.4%} test={MAE= 0.6% RMSE= 6.5%}
-	検証: out[3] : train={MAE= 0.3% RMSE= 3.7%} test={MAE= 0.6% RMSE= 6.8%}
-	検証: out[4] : train={MAE= 0.1% RMSE= 2.8%} test={MAE= 0.5% RMSE= 5.8%}
-	検証: out[5] : train={MAE= 0.2% RMSE= 3.1%} test={MAE= 0.5% RMSE= 6.1%}
-	検証: out[6] : train={MAE= 0.1% RMSE= 1.5%} test={MAE= 0.3% RMSE= 4.7%}
-	検証: out[7] : train={MAE= 0.3% RMSE= 3.8%} test={MAE= 0.6% RMSE= 6.7%}
-	検証: out[8] : train={MAE= 0.3% RMSE= 3.8%} test={MAE= 0.7% RMSE= 7.2%}
-	検証: out[9] : train={MAE= 0.2% RMSE= 3.4%} test={MAE= 0.6% RMSE= 6.4%}
-	学習終了
-	保存完了: XNN.model
-	====== 検証 ======
-	class[0]: 適合率=98.9% 再現率=98.4% F値=98.6% 選択率= 9.8%
-	class[1]: 適合率=98.9% 再現率=98.9% F値=98.9% 選択率=11.3%
-	class[2]: 適合率=95.6% 再現率=99.0% F値=97.3% 選択率=10.7%
-	class[3]: 適合率=96.3% 再現率=98.1% F値=97.2% 選択率=10.3%
-	class[4]: 適合率=97.9% 再現率=98.0% F値=97.9% 選択率= 9.8%
-	class[5]: 適合率=98.7% 再現率=96.1% F値=97.4% 選択率= 8.7%
-	class[6]: 適合率=98.7% 再現率=98.5% F値=98.6% 選択率= 9.6%
-	class[7]: 適合率=95.9% 再現率=98.6% F値=97.3% 選択率=10.6%
-	class[8]: 適合率=98.1% 再現率=95.4% F値=96.7% 選択率= 9.5%
-	class[9]: 適合率=98.8% 再現率=96.0% F値=97.4% 選択率= 9.8%
-	average:  適合率=97.8% 再現率=97.8% F値=97.7%
+	検証完了: 0.0296ミリ秒/回
 

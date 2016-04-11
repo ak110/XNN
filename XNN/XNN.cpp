@@ -446,7 +446,7 @@ namespace XNN {
 				x = nd(rnd);
 			for (auto& x : biases)
 				x = 0.1f / inUnits; // バイアスは適当な正の定数。dead neurons対策。
-			outputNorm = outUnits / 2.0; // ReLU1個やSigmoid1個あたり平均0.5と見なす。(実際の挙動はよく知らない…)
+			outputNorm = (double)outUnits;
 		}
 		// 学習するクラス
 		struct Trainer : ILayerTrainer {
@@ -515,11 +515,10 @@ namespace XNN {
 	};
 
 	// 活性化関数の種類
-	enum class ActivationFunction { ReLU, Sigmoid, Identity, Softmax };
+	enum class ActivationFunction { ReLU, Sigmoid, Softmax };
 	template<ActivationFunction Act> float activation(float x);
 	template<> float activation<ActivationFunction::ReLU>(float x) { return max(0.f, x); }
 	template<> float activation<ActivationFunction::Sigmoid>(float x) { return 1.0f / (1.0f + exp(-x)); }
-	template<> float activation<ActivationFunction::Identity>(float x) { return x; }
 	template<> float activation<ActivationFunction::Softmax>(float x) { assert(false); return 0; }
 
 	// 活性化関数レイヤー
@@ -684,16 +683,13 @@ namespace XNN {
 			assert((int)out.size() == params.outUnits);
 		}
 		// 学習
-		void Train(vector<XNNData>&& trainData, vector<XNNData>&& testData) {
+		void Train(vector<XNNData>&& trainData) {
 			auto startTime = high_resolution_clock::now();
 			mt.seed(5489); // fixed seed
 
 			CheckData(trainData);
-			CheckData(testData);
-			if (1 <= params.verbose) {
+			if (1 <= params.verbose)
 				cout << "訓練データ: " << trainData.size() << "件" << endl;
-				cout << "検証データ: " << testData.size() << "件" << endl;
-			}
 
 			if (params.objective == XNNObjective::BinaryLogistic) {
 				// scale_pos_weightの自動設定
@@ -748,21 +744,43 @@ namespace XNN {
 			if (1 <= params.verbose)
 				cout << "学習開始" << endl;
 
-			// 学習を回す。検証誤差がほぼ下がらなくなったら終了。
+			// 学習を回す。
+			// 訓練データのうち9/10を学習して、残り1/10で検証誤差を算出する。
+			// 次回以降はシャッフルし直して同様に。検証誤差が下がらなくなれば終了。
+			// 検証誤差とは言うものの、毎回シャッフルするので、
+			// 訓練誤差に近い性質の数値になるため注意が必要。
 
-			// ＜程よく検証するために色々考えてみた謎条件＞
-			// テストデータが1万以下の場合、訓練データ10万毎に検証を入れる。
-			// ただし訓練データが20万未満の場合、訓練データ1周毎にする。
-			// テストデータが1万以上なら、比例する感じで同様に。
-			auto testSize = max(testData.size(), (size_t)10000);
-			auto testIntervalEpoch = testSize * 10 / params.miniBatchSize;
-			auto testOnlyEnd = trainData.size() < (testIntervalEpoch * 2 * params.miniBatchSize);
+			auto testSize = trainData.size() / 10;
+			auto trainSize = trainData.size() - testSize;
 
 			double lastRMSE = numeric_limits<double>::max();
-			auto toBeStop = [&](bool checkStop) {
+			for (size_t loop = 0; ; loop++) {
+				// シャッフル
+				shuffle(trainData.begin(), trainData.end(), mt);
+
+				// 学習
+				{
+					ProgressTimer timer;
+
+					const size_t MaxEpoch = trainSize / params.miniBatchSize;
+					for (size_t epoch = 0; epoch < MaxEpoch; epoch++) {
+						PartialFit(trainData, epoch * params.miniBatchSize, params.miniBatchSize);
+
+						if (1 <= params.verbose && (epoch + 1) % (MaxEpoch / 10) == 0) {
+							timer.Set(epoch + 1, MaxEpoch);
+							cout << "学習:"
+								<< " loop=" << loop
+								<< " " << timer.ToStringCount()
+								<< " " << timer.ToStringTime()
+								<< endl;
+						}
+					}
+				}
+
 				// 訓練誤差・検証誤差の算出
-				auto pred1 = Predict(trainData, 0, min(trainData.size(), testSize));
-				auto pred2 = Predict(testData, 0, testData.size());
+				shuffle(trainData.begin(), trainData.begin() + trainSize, mt);
+				auto pred1 = Predict(trainData, 0, testSize);
+				auto pred2 = Predict(trainData, trainSize, testSize);
 				assert(pred1.size() == pred2.size());
 				// 表示
 				if (1 <= params.verbose || pred2.size() <= 1) {
@@ -784,48 +802,13 @@ namespace XNN {
 						<< endl;
 				}
 				// 終了判定
-				if (checkStop) {
-					// 検証データのRMSEの差がstopDeltaRMSE未満になったら学習終了。
-					auto rmse = average2.GetRMSE();
-					auto delta = lastRMSE - rmse;
-					lastRMSE = rmse;
-					return delta < params.stopDeltaRMSE ||
-						rmse < params.stopDeltaRMSE; // 0 <= rmseなので充分小さければ止まっていい
-				}
-				return false;
-			};
-
-			for (size_t loop = 0; ; loop++) {
-				// シャッフル
-				shuffle(trainData.begin(), trainData.end(), mt);
-
-				// 学習
-				{
-					ProgressTimer timer;
-
-					const size_t MaxEpoch = trainData.size() / params.miniBatchSize;
-					for (size_t epoch = 0; epoch < MaxEpoch; epoch++) {
-						PartialFit(trainData, epoch * params.miniBatchSize, params.miniBatchSize);
-
-						if (1 <= params.verbose && (epoch + 1) % (MaxEpoch / 10) == 0) {
-							timer.Set(epoch + 1, MaxEpoch);
-							cout << "学習:"
-								<< " loop=" << loop
-								<< " " << timer.ToStringCount()
-								<< " " << timer.ToStringTime()
-								<< endl;
-						}
-						// ある程度大きい場合は途中で検証
-						if (!testOnlyEnd && (epoch + 1) % testIntervalEpoch == 0) {
-							if (toBeStop(0 < loop)) // 終了は最低でも一周した後。
-								break;
-						}
-					}
-				}
-				// 小さい場合は1周毎に検証
-				if (testOnlyEnd)
-					if (toBeStop(true))
-						break;
+				// 検証データのRMSEの差がstopDeltaRMSE未満になったら学習終了。
+				auto rmse = average2.GetRMSE();
+				auto delta = lastRMSE - rmse;
+				lastRMSE = rmse;
+				if (delta < params.stopDeltaRMSE ||
+					rmse < params.stopDeltaRMSE) // 0 <= rmseなので充分小さければ止まっていい
+					break;
 			}
 
 			auto dt = high_resolution_clock::now() - startTime;
@@ -1048,8 +1031,8 @@ namespace XNN {
 	void XNNModel::Load(const string& path) {
 		impl->Load(path);
 	}
-	void XNNModel::Train(vector<XNNData>&& trainData, vector<XNNData>&& testData) {
-		impl->Train(move(trainData), move(testData));
+	void XNNModel::Train(vector<XNNData>&& trainData) {
+		impl->Train(move(trainData));
 	}
 	string XNNModel::Predict(vector<XNNData>&& testData) const {
 		return impl->Predict(move(testData));

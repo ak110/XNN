@@ -28,8 +28,6 @@ TEST(XNN, Activation) {
 	EXPECT_EQ(0.0f, activation<ActivationFunction::Sigmoid>(-100));
 	EXPECT_EQ(0.5f, activation<ActivationFunction::Sigmoid>(0));
 	EXPECT_EQ(1.0f, activation<ActivationFunction::Sigmoid>(100));
-	EXPECT_EQ(-3.0f, activation<ActivationFunction::Identity>(-3));
-	EXPECT_EQ(+3.0f, activation<ActivationFunction::Identity>(+3));
 }
 
 TEST(XNN, SVNLight) {
