@@ -320,13 +320,6 @@ namespace XNN {
 		}
 	};
 
-	// 活性化関数
-	enum class ActivationFunction { ReLU, Sigmoid, Identity };
-	template<ActivationFunction Act> float activation(float x);
-	template<> float activation<ActivationFunction::ReLU>(float x) { return max(0.f, x); }
-	template<> float activation<ActivationFunction::Sigmoid>(float x) { return 1.0f / (1.0f + exp(-x)); }
-	template<> float activation<ActivationFunction::Identity>(float x) { return x; }
-
 	// 層を学習するクラス
 	struct ILayerTrainer {
 		virtual ~ILayerTrainer() {}
@@ -418,9 +411,7 @@ namespace XNN {
 	};
 
 	// 全層結合層
-	// 結合と活性化関数はそれぞれ層にするのが今時っぽいけど、
-	// ReLUに特化してちょっと計算をサボるためにセットで層にする。
-	template<ActivationFunction Act> struct FullyConnectedLayer : public ILayer {
+	struct FullyConnectedLayer : public ILayer {
 		uint64_t inUnits, outUnits;
 		double inputNorm;
 		vector<float> weights;
@@ -448,11 +439,8 @@ namespace XNN {
 		// 学習用に初期化
 		void Initialize(const vector<XNNData>&, mt19937_64& rnd, double inputNorm_, double& outputNorm) override {
 			// 分散の合計が1の一様分布がいいという噂。http://deeplearning.net/tutorial/mlp.html
-			// sigmoidの時は更に4倍
 			inputNorm = inputNorm_;
 			auto s = sqrt(3.0f / (float(inputNorm * 2)));
-			if (Act == ActivationFunction::Sigmoid)
-				s *= 4;
 			auto nd = uniform_real_distribution<float>(-s, s);
 			for (auto& x : weights)
 				x = nd(rnd);
@@ -462,10 +450,10 @@ namespace XNN {
 		}
 		// 学習するクラス
 		struct Trainer : ILayerTrainer {
-			FullyConnectedLayer<Act>& owner;
+			FullyConnectedLayer& owner;
 			AdamOptimizer optimizerW, optimizerB;
 			DenseVector<> gradW, gradB;
-			Trainer(FullyConnectedLayer<Act>& owner) :
+			Trainer(FullyConnectedLayer& owner) :
 				owner(owner),
 				// 入力の大きさに応じて謎チューニング
 				optimizerW(owner.weights.size(), 10.0 / sqrt(owner.inputNorm)),
@@ -499,7 +487,7 @@ namespace XNN {
 					out[o] += in[i] * weights[o * inUnits + i];
 			}
 			for (size_t o = 0; o < outUnits; o++)
-				out[o] = activation<Act>(out[o] + biases[o]);
+				out[o] += biases[o];
 		}
 		// 逆伝搬
 		void Backward(ILayerTrainer& trainer_,
@@ -512,8 +500,6 @@ namespace XNN {
 			errorOut.resize(inUnits, 0.0f);
 			auto& trainer = (Trainer&)trainer_;
 			for (size_t o = 0; o < outUnits; o++) {
-				if (Act == ActivationFunction::ReLU && out[o] <= FLT_EPSILON)
-					continue; // サボる
 				if (abs(errorIn[o]) <= FLT_EPSILON)
 					continue;
 				// 誤差の伝播
@@ -527,15 +513,31 @@ namespace XNN {
 			}
 		}
 	};
-	// 多クラス分類用のSoftmax関数
-	struct SoftmaxLayer : public ILayer {
+
+	// 活性化関数の種類
+	enum class ActivationFunction { ReLU, Sigmoid, Identity, Softmax };
+	template<ActivationFunction Act> float activation(float x);
+	template<> float activation<ActivationFunction::ReLU>(float x) { return max(0.f, x); }
+	template<> float activation<ActivationFunction::Sigmoid>(float x) { return 1.0f / (1.0f + exp(-x)); }
+	template<> float activation<ActivationFunction::Identity>(float x) { return x; }
+	template<> float activation<ActivationFunction::Softmax>(float x) { assert(false); return 0; }
+
+	// 活性化関数レイヤー
+	template<ActivationFunction Act>
+	struct ActivationLayer : public ILayer {
 		// モデルの読み込み
 		void Load(istream& s) override {}
 		// モデルの保存
 		void Save(ostream& s) const override {}
 		// 学習用に初期化
 		void Initialize(const vector<XNNData>& data, mt19937_64& rnd, double inputNorm, double& outputNorm) override {
-			outputNorm = 1.0;
+			switch (Act) {
+			case ActivationFunction::ReLU: outputNorm = inputNorm / 2; break;
+			case ActivationFunction::Sigmoid: outputNorm = inputNorm / 2; break;
+			case ActivationFunction::Softmax: outputNorm = 1.0; break;
+			default:
+				assert(false);
+			}
 		}
 		// 学習するクラスを作る
 		unique_ptr<ILayerTrainer> CreateTrainer() override {
@@ -544,11 +546,24 @@ namespace XNN {
 		// 順伝搬
 		void Forward(const vector<float>& in, vector<float>& out) const override {
 			out = in;
-			auto m = *max_element(out.begin(), out.end());
-			for (auto& x : out)
-				x = exp(x - m); // 最大値を引く(オーバーフロー対策)
-			auto s = accumulate(out.begin(), out.end(), 0.0f);
-			out /= s;
+			switch (Act) {
+			case ActivationFunction::ReLU:
+			case ActivationFunction::Sigmoid:
+				for (auto& x : out)
+					x = activation<Act>(x);
+				break;
+			case ActivationFunction::Softmax:
+				{
+					auto m = *max_element(out.begin(), out.end());
+					for (auto& x : out)
+						x = exp(x - m); // 最大値を引く(オーバーフロー対策)
+					auto s = accumulate(out.begin(), out.end(), 0.0f);
+					out /= s;
+				}
+				break;
+			default:
+				assert(false);
+			}
 		}
 		// 逆伝搬
 		void Backward(
@@ -556,6 +571,21 @@ namespace XNN {
 			const vector<float>& in, const vector<float>& out,
 			vector<float>& errorOut, const vector<float>& errorIn) const override {
 			errorOut = errorIn;
+			assert(errorOut.size() == out.size());
+			switch (Act) {
+			case ActivationFunction::ReLU:
+				for (size_t o = 0; o < errorOut.size(); o++)
+					if (out[o] <= FLT_EPSILON)
+						errorOut[o] = 0.0f;
+				break;
+			case ActivationFunction::Sigmoid:
+			case ActivationFunction::Softmax:
+				// 中間層の場合はここで微分する必要があるが、
+				// 現状は出力層限定なのでそのまま伝搬させる。
+				break;
+			default:
+				assert(false);
+			}
 		}
 	};
 
@@ -603,25 +633,21 @@ namespace XNN {
 				layers.emplace_back(new InputScalingLayer(params.inUnits));
 
 			layers.emplace_back(
-				new FullyConnectedLayer<ActivationFunction::ReLU>(
-					params.inUnits, params.hiddenUnits));
+				new FullyConnectedLayer(params.inUnits, params.hiddenUnits));
+			layers.emplace_back(new ActivationLayer<ActivationFunction::ReLU>());
 
-			for (int i = 0; i < params.hiddenLayers - 1; i++)
+			for (int i = 0; i < params.hiddenLayers - 1; i++) {
 				layers.emplace_back(
-					new FullyConnectedLayer<ActivationFunction::ReLU>(
-						params.hiddenUnits, params.hiddenUnits));
+					new FullyConnectedLayer(params.hiddenUnits, params.hiddenUnits));
+				layers.emplace_back(new ActivationLayer<ActivationFunction::ReLU>());
+			}
 
+			layers.emplace_back(
+				new FullyConnectedLayer(params.hiddenUnits, params.outUnits));
 			if (params.objective == XNNObjective::MultiSoftmax)
-				layers.emplace_back(
-					new FullyConnectedLayer<ActivationFunction::Identity>(
-						params.hiddenUnits, params.outUnits));
+				layers.emplace_back(new ActivationLayer<ActivationFunction::Softmax>());
 			else
-				layers.emplace_back(
-					new FullyConnectedLayer<ActivationFunction::Sigmoid>(
-						params.hiddenUnits, params.outUnits));
-
-			if (params.objective == XNNObjective::MultiSoftmax)
-				layers.emplace_back(new SoftmaxLayer());
+				layers.emplace_back(new ActivationLayer<ActivationFunction::Sigmoid>());
 		}
 		// データのチェック
 		void CheckData(vector<XNNData>& data) const {
