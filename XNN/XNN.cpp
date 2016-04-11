@@ -360,19 +360,19 @@ namespace XNN {
 		vector<float> scale;
 		InputScalingLayer(uint64_t inUnits, float minScale = 1.0f) : inUnits(inUnits), scale(inUnits, minScale) {}
 		// モデルの読み込み
-		void Load(istream& s) {
+		void Load(istream& s) override {
 			s.read((char*)&inUnits, sizeof inUnits);
 			scale.resize(inUnits);
 			s.read((char*)&scale[0], scale.size() * sizeof scale[0]);
 		}
 		// モデルの保存
-		void Save(ostream& s) const {
+		void Save(ostream& s) const override {
 			s.write((const char*)&inUnits, sizeof inUnits);
 			s.write((const char*)&scale[0], scale.size() * sizeof scale[0]);
 		}
 		// 学習用に初期化
 		// 学習率を程よくするために、入力のL1ノルムの平均(の推定値)を受け取り、出力のL1ノルムの平均(の推定値)を返す。(順に伝搬させる)
-		void Initialize(const vector<XNNData>& data, mt19937_64& rnd, double inputNorm, double& outputNorm) {
+		void Initialize(const vector<XNNData>& data, mt19937_64& rnd, double inputNorm, double& outputNorm) override {
 			// スケールの決定。とりあえず絶対値の最大値で割り算する感じにする。
 			for (auto& d : data) {
 				for (size_t i = 0; i < inUnits; i++) {
@@ -392,11 +392,11 @@ namespace XNN {
 			outputNorm /= data.size();
 		}
 		// 学習するクラスを作る
-		unique_ptr<ILayerTrainer> CreateTrainer() {
+		unique_ptr<ILayerTrainer> CreateTrainer() override {
 			return unique_ptr<ILayerTrainer>(new NullLayerTrainer());
 		}
 		// 順伝搬
-		void Forward(const vector<float>& in, vector<float>& out) const {
+		void Forward(const vector<float>& in, vector<float>& out) const override {
 			out = in;
 			for (size_t i = 0; i < inUnits; i++)
 				out[i] *= scale[i];
@@ -405,7 +405,7 @@ namespace XNN {
 		void Backward(
 			ILayerTrainer& trainer,
 			const vector<float>& in, const vector<float>& out,
-			vector<float>& errorOut, const vector<float>& errorIn) const {
+			vector<float>& errorOut, const vector<float>& errorIn) const override {
 			errorOut = errorIn;
 		}
 	};
