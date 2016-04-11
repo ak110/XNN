@@ -51,14 +51,14 @@ namespace XNN {
 		int32_t miniBatchSize = 100;
 		// ミニバッチの最低回数。訓練データがこの値未満なら整数倍して超えるようにして学習する。
 		int32_t minMiniBatchCount = 1000;
-		// 検証データのRMSEの差がこの値未満になったら学習終了。(ただし最低でも訓練データを1回は使用する。)
-		double stopDeltaRMSE = 0.0005; // 0.05%
+		// 検証データのRMSEの最小値がこの回数だけ更新されなければ終了する。0なら初回で終了。
+		int32_t earlyStoppingTolerance = 3;
 		// 学習の途中経過を多めに出すなら1。既定値も1。(データやネットワークが大きい時用)
 		int32_t verbose = 1;
 		// 2クラス分類のときの正例(ラベルが1のデータ)の重み。
 		double scalePosWeight = -1;
 		// 念のため互換性用
-		int32_t reserved[63] = {};
+		int32_t reserved[64] = {};
 		// 初期化
 		XNNParams(int inUnits, int hiddenUnits, int outUnits, int hiddenLayers)
 			: inUnits(inUnits), hiddenUnits(hiddenUnits), outUnits(outUnits), hiddenLayers(hiddenLayers) {}

@@ -757,7 +757,9 @@ namespace XNN {
 			auto testSize = trainData.size() / 10;
 			auto trainSize = trainData.size() - testSize;
 
-			double lastRMSE = numeric_limits<double>::max();
+			double minRMSE = numeric_limits<double>::max();
+			int earlyStoppingCount = 0;
+
 			for (size_t loop = 0; ; loop++) {
 				// 学習
 				{
@@ -805,13 +807,16 @@ namespace XNN {
 				}
 
 				// 終了判定
-				// 検証データのRMSEの差がstopDeltaRMSE未満になったら学習終了。
 				auto rmse = average2.GetRMSE();
-				auto delta = lastRMSE - rmse;
-				lastRMSE = rmse;
-				if (delta < params.stopDeltaRMSE ||
-					rmse < params.stopDeltaRMSE) // 0 <= rmseなので充分小さければ止まっていい
-					break;
+				if (rmse < 0.005)
+					break; // 充分小さければ止まる
+				if (rmse < minRMSE) {
+					minRMSE = rmse;
+					earlyStoppingCount = 0;
+				} else {
+					if (params.earlyStoppingTolerance < ++earlyStoppingCount)
+						break;
+				}
 
 				// シャッフル
 				shuffle(trainData.begin(), trainData.end(), mt);

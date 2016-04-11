@@ -11,15 +11,21 @@
 実行結果
 --------
 
-	====== 学習 ======
 	ネットワーク: 1858 - (16 x 1) - 1
-	検証: out[0] : train={MAE= 7.3% RMSE=10.0%} test={MAE= 7.4% RMSE=10.1%}
-	検証: out[0] : train={MAE= 7.3% RMSE= 9.8%} test={MAE= 7.4% RMSE=10.0%}
-	検証: out[0] : train={MAE= 7.3% RMSE= 9.8%} test={MAE= 7.3% RMSE= 9.8%}
+	検証: out[0] : train={MAE= 7.3% RMSE= 9.9%} test={MAE= 7.2% RMSE= 9.9%}
+	検証: out[0] : train={MAE= 7.3% RMSE= 9.8%} test={MAE= 7.4% RMSE= 9.9%}
 	検証: out[0] : train={MAE= 7.2% RMSE= 9.8%} test={MAE= 7.2% RMSE= 9.8%}
-	学習完了: 91.759秒
+	検証: out[0] : train={MAE= 7.2% RMSE= 9.8%} test={MAE= 7.2% RMSE= 9.8%}
+	検証: out[0] : train={MAE= 7.2% RMSE= 9.8%} test={MAE= 7.2% RMSE= 9.8%}
+	検証: out[0] : train={MAE= 7.2% RMSE= 9.7%} test={MAE= 7.2% RMSE= 9.9%}
+	検証: out[0] : train={MAE= 7.2% RMSE= 9.8%} test={MAE= 7.2% RMSE= 9.9%}
+	検証: out[0] : train={MAE= 7.1% RMSE= 9.6%} test={MAE= 7.1% RMSE= 9.7%}
+	検証: out[0] : train={MAE= 7.2% RMSE= 9.7%} test={MAE= 7.2% RMSE= 9.8%}
+	検証: out[0] : train={MAE= 7.1% RMSE= 9.7%} test={MAE= 7.2% RMSE= 9.9%}
+	検証: out[0] : train={MAE= 7.2% RMSE= 9.8%} test={MAE= 7.2% RMSE= 9.8%}
+	検証: out[0] : train={MAE= 7.1% RMSE= 9.7%} test={MAE= 7.2% RMSE= 9.8%}
+	学習完了: 271.726秒
 	保存完了: XNN.model
 	====== 検証 ======
-	MAE= 7.3% RMSE=10.1%
-	検証完了: 0.0344996ミリ秒/回
-
+	MAE= 7.4% RMSE=10.1%
+	検証完了: 0.0365031ミリ秒/回
