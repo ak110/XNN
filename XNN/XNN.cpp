@@ -759,22 +759,25 @@ namespace XNN {
 			int earlyStoppingCount = 0;
 			size_t testSize = min(max(testData.size(), (size_t)10000), trainData.size());
 
-			for (size_t loop = 0; ; loop++) {
+			for (size_t epoch = 0; ; epoch++) {
 				// 学習
 				{
 					ProgressTimer timer;
 
-					const size_t MaxEpoch = trainData.size() / params.miniBatchSize;
-					for (size_t epoch = 0; epoch < MaxEpoch; epoch++) {
-						PartialFit(trainData, epoch * params.miniBatchSize, params.miniBatchSize);
+					const size_t MaxMB = trainData.size() / params.miniBatchSize;
+					RegressionScore score;
+					for (size_t mb = 0; mb < MaxMB; mb++) {
+						score += PartialFit(trainData, mb * params.miniBatchSize, params.miniBatchSize);
 
-						if (1 <= params.verbose && (epoch + 1) % (MaxEpoch / 10) == 0) {
-							timer.Set(epoch + 1, MaxEpoch);
+						if (1 <= params.verbose && (mb + 1) % (MaxMB / 10) == 0) {
+							timer.Set(mb + 1, MaxMB);
 							cout << "学習:"
-								<< " loop=" << loop
+								<< " epoch=" << (epoch + 1)
 								<< " " << timer.ToStringCount()
+								<< " train={" << score.ToString() << "}"
 								<< " " << timer.ToStringTime()
 								<< endl;
+							score.Clear();
 						}
 					}
 				}
@@ -825,7 +828,7 @@ namespace XNN {
 			cout << "学習完了: " << (duration_cast<milliseconds>(dt).count() / 1000.0) << "秒" << endl;
 		}
 		// ミニバッチによる更新
-		void PartialFit(const std::vector<XNNData>& trainData, size_t startIndex, size_t count) {
+		RegressionScore PartialFit(const std::vector<XNNData>& trainData, size_t startIndex, size_t count) {
 #pragma omp parallel for
 			for (int i = 0; i < (int)trainers.size(); i++)
 				trainers[i]->Clear();
@@ -837,6 +840,7 @@ namespace XNN {
 				(float)params.scalePosWeight * 2 / ((float)params.scalePosWeight + 1),
 			} };
 
+			RegressionScore score;
 			atomic<size_t> miniBatchIndex(0);
 #pragma omp parallel
 			{
@@ -863,6 +867,8 @@ namespace XNN {
 					TransformOutput(errorIn);
 					for (size_t i = 0; i < errorIn.size(); i++)
 						errorIn[i] = errorIn[i] - out.back()[i];
+					// 集計
+					score.Add(accumulate(errorIn.begin(), errorIn.end(), 0.0) / errorIn.size());
 					// scale_pos_weight
 					if (params.objective == XNNObjective::BinaryLogistic) {
 						for (size_t i = 0; i < errorIn.size(); i++)
@@ -881,6 +887,8 @@ namespace XNN {
 #pragma omp parallel for
 			for (int i = 0; i < (int)trainers.size(); i++)
 				trainers[i]->Update();
+
+			return score;
 		}
 
 		// 予測
