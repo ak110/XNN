@@ -80,7 +80,7 @@ namespace XNN {
 		// モデルの読み込み
 		void Load(const string& path);
 		// 学習
-		void Train(vector<XNNData>&& trainData);
+		void Train(vector<XNNData>&& trainData, vector<XNNData>&& testData);
 		// 評価(集計結果をcoutに出して、生の値をstringで返す。)
 		string Predict(vector<XNNData>&& testData) const;
 		// 評価(スレッドセーフ、非並列)

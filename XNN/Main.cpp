@@ -107,7 +107,9 @@ int Process(int argc, char* argv[]) {
 		auto params = config.CreateParams();
 		auto modelPath = config.Get("model_out", "XNN.model");
 		XNNModel dnn(params);
-		dnn.Train(LoadSVMLight(config.GetRequired("data"), params.inUnits));
+		dnn.Train(
+			LoadSVMLight(config.GetRequired("data"), params.inUnits),
+			LoadSVMLight(config.GetRequired("test:data"), params.inUnits));
 		dnn.Save(modelPath);
 		cout << "保存完了: " << modelPath << endl;
 	} else if (task == "pred") {

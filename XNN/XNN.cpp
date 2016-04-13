@@ -518,10 +518,11 @@ namespace XNN {
 	};
 
 	// 活性化関数の種類
-	enum class ActivationFunction { ReLU, Sigmoid, Softmax };
+	enum class ActivationFunction { ReLU, Sigmoid, Identity, Softmax };
 	template<ActivationFunction Act> float activation(float x);
 	template<> float activation<ActivationFunction::ReLU>(float x) { return max(0.f, x); }
 	template<> float activation<ActivationFunction::Sigmoid>(float x) { return 1.0f / (1.0f + exp(-x)); }
+	template<> float activation<ActivationFunction::Identity>(float x) { return x; }
 	template<> float activation<ActivationFunction::Softmax>(float x) { assert(false); return 0; }
 
 	// 活性化関数レイヤー
@@ -686,13 +687,16 @@ namespace XNN {
 			assert((int)out.size() == params.outUnits);
 		}
 		// 学習
-		void Train(vector<XNNData>&& trainData) {
+		void Train(vector<XNNData>&& trainData, vector<XNNData>&& testData) {
 			auto startTime = high_resolution_clock::now();
 			mt.seed(5489); // fixed seed
 
 			CheckData(trainData);
-			if (1 <= params.verbose)
+			CheckData(testData);
+			if (1 <= params.verbose) {
 				cout << "訓練データ: " << trainData.size() << "件" << endl;
+				cout << "検証データ: " << testData.size() << "件" << endl;
+			}
 
 			if (params.objective == XNNObjective::BinaryLogistic) {
 				// scale_pos_weightの自動設定
@@ -748,24 +752,18 @@ namespace XNN {
 			if (1 <= params.verbose)
 				cout << "学習開始" << endl;
 
-			// 学習を回す。
-			// 訓練データのうち9/10を学習して、残り1/10で検証誤差を算出する。
-			// 次回以降はシャッフルし直して同様に。検証誤差が下がらなくなれば終了。
-			// 検証誤差とは言うものの、毎回シャッフルするので、
-			// 訓練誤差に近い性質の数値になるため注意が必要。
-
-			auto testSize = trainData.size() / 10;
-			auto trainSize = trainData.size() - testSize;
+			// 学習を回す。検証誤差がほぼ下がらなくなったら終了。
 
 			double minRMSE = numeric_limits<double>::max();
 			int earlyStoppingCount = 0;
+			size_t testSize = min(max(testData.size(), (size_t)10000), trainData.size());
 
 			for (size_t loop = 0; ; loop++) {
 				// 学習
 				{
 					ProgressTimer timer;
 
-					const size_t MaxEpoch = trainSize / params.miniBatchSize;
+					const size_t MaxEpoch = trainData.size() / params.miniBatchSize;
 					for (size_t epoch = 0; epoch < MaxEpoch; epoch++) {
 						PartialFit(trainData, epoch * params.miniBatchSize, params.miniBatchSize);
 
@@ -781,9 +779,9 @@ namespace XNN {
 				}
 
 				// 訓練誤差・検証誤差の算出
-				shuffle(trainData.begin(), trainData.begin() + trainSize, mt);
+				shuffle(trainData.begin(), trainData.begin() + testSize, mt);
 				auto pred1 = Predict(trainData, 0, testSize);
-				auto pred2 = Predict(trainData, trainSize, testSize);
+				auto pred2 = Predict(testData, 0, testData.size());
 				assert(pred1.size() == pred2.size());
 
 				// 表示
@@ -1042,8 +1040,8 @@ namespace XNN {
 	void XNNModel::Load(const string& path) {
 		impl->Load(path);
 	}
-	void XNNModel::Train(vector<XNNData>&& trainData) {
-		impl->Train(move(trainData));
+	void XNNModel::Train(vector<XNNData>&& trainData, vector<XNNData>&& testData) {
+		impl->Train(move(trainData), move(testData));
 	}
 	string XNNModel::Predict(vector<XNNData>&& testData) const {
 		return impl->Predict(move(testData));

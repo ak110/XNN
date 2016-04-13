@@ -30,7 +30,7 @@ TEST(Main, Heavy_AndOrXor) {
 	XNNParams params(2, 8, 3, 1);
 	params.verbose = 0;
 	XNNModel dnn(params);
-	dnn.Train(vector<XNNData>(data));
+	dnn.Train(vector<XNNData>(data), vector<XNNData>(data));
 
 	auto result00 = dnn.Predict(vector<float>(data[0].in));
 	auto result01 = dnn.Predict(vector<float>(data[1].in));
