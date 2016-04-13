@@ -251,9 +251,10 @@ namespace XNN {
 					<< " F値=" << setw(4) << fval * 100 << "%"
 					<< " 選択率=" << setw(4) << pick * 100 << "%"
 					<< endl;
-				avgPrec += prec * pick;
-				avgRecl += recl * pick;
-				avgFval += fval * pick;
+				auto weight = (double)GetLabelCount(classIndex) / total;
+				avgPrec += prec * weight;
+				avgRecl += recl * weight;
+				avgFval += fval * weight;
 			}
 			ss << "average:" << setw(indexWidth) << ""
 				<< " 適合率=" << setw(4) << avgPrec * 100 << "%"
