@@ -29,6 +29,30 @@ namespace XNN {
 	void operator*=(Range& x, T y) { for (auto& r : x) r *= y; }
 	template<class Range, class T>
 	void operator/=(Range& x, T y) { for (auto& r : x) r /= y; }
+	template<class T>
+	void operator+=(vector<T>& x, const vector<T>& y) {
+		assert(x.size() == y.size());
+		for (size_t i = 0, n = x.size(); i < n; i++)
+			x[i] += y[i];
+	}
+	template<class T>
+	void operator-=(vector<T>& x, const vector<T>& y) {
+		assert(x.size() == y.size());
+		for (size_t i = 0, n = x.size(); i < n; i++)
+			x[i] -= y[i];
+	}
+	template<class T>
+	void operator*=(vector<T>& x, const vector<T>& y) {
+		assert(x.size() == y.size());
+		for (size_t i = 0, n = x.size(); i < n; i++)
+			x[i] *= y[i];
+	}
+	template<class T>
+	void operator/=(vector<T>& x, const vector<T>& y) {
+		assert(x.size() == y.size());
+		for (size_t i = 0, n = x.size(); i < n; i++)
+			x[i] /= y[i];
+	}
 
 	// 密ベクトル。基本はvector<float>でいいのだが、SparseVectorとインターフェースを似せるため用意。
 	template<class ValueType = float>
@@ -39,9 +63,6 @@ namespace XNN {
 		void operator+=(const pair<size_t, ValueType>& p) {
 #pragma omp atomic
 			(*this)[p.first] += p.second; // resizeは事前にしてある前提とする。
-		}
-		void operator*=(double factor) {
-			for (auto& p : (vector<ValueType>&)*this) p *= ValueType(factor);
 		}
 		double GetL1Norm() const {
 			double s = 0.0;
@@ -329,6 +350,7 @@ namespace XNN {
 		// 勾配に従って重みを更新
 		virtual void Update() = 0;
 	};
+	// 学習するものが無い層用のILayerTrainer
 	struct NullLayerTrainer : public ILayerTrainer {
 		void Clear() override {}
 		void Update() override {}
@@ -338,21 +360,27 @@ namespace XNN {
 	struct ILayer {
 		virtual ~ILayer() {}
 		// モデルの読み込み
-		virtual void Load(istream& s) = 0;
+		virtual void Load(istream& s) {}
 		// モデルの保存
-		virtual void Save(ostream& s) const = 0;
+		virtual void Save(ostream& s) const {}
 		// 学習用に初期化
 		// 学習率を程よくするために、入力のL1ノルムの平均(の推定値)を受け取り、出力のL1ノルムの平均(の推定値)を返す。(順に伝搬させる)
 		virtual void Initialize(const vector<XNNData>& data, mt19937_64& rnd, double inputNorm, double& outputNorm) = 0;
 		// 学習するクラスを作る
-		virtual unique_ptr<ILayerTrainer> CreateTrainer() = 0;
+		virtual unique_ptr<ILayerTrainer> CreateTrainer() {
+			return unique_ptr<ILayerTrainer>(new NullLayerTrainer());
+		}
 		// 順伝搬
-		virtual void Forward(const vector<float>& in, vector<float>& out) const = 0;
+		virtual void Forward(const vector<float>& in, vector<float>& out) const {
+			out = in;
+		}
 		// 逆伝搬
 		virtual void Backward(
 			ILayerTrainer& trainer,
 			const vector<float>& in, const vector<float>& out,
-			vector<float>& errorOut, const vector<float>& errorIn) const = 0;
+			vector<float>& errorOut, const vector<float>& errorIn) const {
+			errorOut = errorIn;
+		}
 	};
 
 	// 入力をスケーリングする層
@@ -395,22 +423,10 @@ namespace XNN {
 			}
 			outputNorm = l1 / data.size();
 		}
-		// 学習するクラスを作る
-		unique_ptr<ILayerTrainer> CreateTrainer() override {
-			return unique_ptr<ILayerTrainer>(new NullLayerTrainer());
-		}
 		// 順伝搬
 		void Forward(const vector<float>& in, vector<float>& out) const override {
 			out = in;
-			for (size_t i = 0; i < inUnits; i++)
-				out[i] *= scale[i];
-		}
-		// 逆伝搬
-		void Backward(
-			ILayerTrainer& trainer,
-			const vector<float>& in, const vector<float>& out,
-			vector<float>& errorOut, const vector<float>& errorIn) const override {
-			errorOut = errorIn;
+			out *= scale;
 		}
 	};
 
@@ -490,8 +506,7 @@ namespace XNN {
 				for (size_t i = 0; i < inUnits; i++)
 					out[o] += in[i] * weights[o * inUnits + i];
 			}
-			for (size_t o = 0; o < outUnits; o++)
-				out[o] += biases[o];
+			out += biases;
 		}
 		// 逆伝搬
 		void Backward(ILayerTrainer& trainer_,
@@ -529,10 +544,6 @@ namespace XNN {
 	// 活性化関数レイヤー
 	template<ActivationFunction Act>
 	struct ActivationLayer : public ILayer {
-		// モデルの読み込み
-		void Load(istream& s) override {}
-		// モデルの保存
-		void Save(ostream& s) const override {}
 		// 学習用に初期化
 		void Initialize(const vector<XNNData>& data, mt19937_64& rnd, double inputNorm, double& outputNorm) override {
 			switch (Act) {
@@ -542,10 +553,6 @@ namespace XNN {
 			default:
 				assert(false);
 			}
-		}
-		// 学習するクラスを作る
-		unique_ptr<ILayerTrainer> CreateTrainer() override {
-			return unique_ptr<ILayerTrainer>(new NullLayerTrainer());
 		}
 		// 順伝搬
 		void Forward(const vector<float>& in, vector<float>& out) const override {
