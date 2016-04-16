@@ -255,8 +255,8 @@ namespace XNN {
 		// 文字列化
 		string ToString() const override {
 			uint64_t total = 0;
-			for (auto& l : list)
-				total += l[0] + l[1];
+			for (size_t classIndex = 0; classIndex < list.size(); classIndex++)
+				total += GetLabelCount(classIndex);
 			int indexWidth = (int)floor(log10(list.size() - 1)) + 1;
 			stringstream ss;
 			ss << fixed << setprecision(1);
@@ -266,16 +266,17 @@ namespace XNN {
 				auto recl = GetRecall(classIndex);
 				auto fval = GetFValue(classIndex);
 				auto pick = (double)GetPickCount(classIndex) / total;
+				auto dist = (double)GetLabelCount(classIndex) / total;
 				ss << "class[" << setw(indexWidth) << classIndex << "]:"
 					<< " 適合率=" << setw(4) << prec * 100 << "%"
 					<< " 再現率=" << setw(4) << recl * 100 << "%"
 					<< " F値=" << setw(4) << fval * 100 << "%"
 					<< " 選択率=" << setw(4) << pick * 100 << "%"
+					<< " 分布=" << setw(4) << dist * 100 << "%"
 					<< endl;
-				auto weight = (double)GetLabelCount(classIndex) / total;
-				avgPrec += prec * weight;
-				avgRecl += recl * weight;
-				avgFval += fval * weight;
+				avgPrec += prec * dist;
+				avgRecl += recl * dist;
+				avgFval += fval * dist;
 			}
 			ss << "average:" << setw(indexWidth) << ""
 				<< " 適合率=" << setw(4) << avgPrec * 100 << "%"
