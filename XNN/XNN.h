@@ -85,5 +85,7 @@ namespace XNN {
 		string Predict(vector<XNNData>&& testData) const;
 		// 評価(スレッドセーフ、非並列)
 		vector<float> Predict(vector<float>&& in) const;
+		// 特徴の重要度のようなものを返す。(単に入力層の重みのRMSなので厳密ではない)
+		vector<float> GetFScore() const;
 	};
 }

@@ -532,6 +532,16 @@ namespace XNN {
 				trainer.gradB += make_pair(o, errorIn[o]);
 			}
 		}
+		// 特徴の重要度のようなもの
+		vector<float> GetWeightRMS() const {
+			vector<float> rms(inUnits, 0.0f);
+			for (size_t o = 0; o < outUnits; o++)
+				for (size_t i = 0; i < inUnits; i++)
+					rms[i] += weights[o * inUnits + i] * weights[o * inUnits + i];
+			for (auto& x : rms)
+				x = sqrt(x / outUnits);
+			return rms;
+		}
 	};
 
 	// 活性化関数の種類
@@ -987,6 +997,14 @@ namespace XNN {
 			assert((int)in.size() == params.outUnits);
 			return in;
 		}
+
+		// 特徴の重要度のようなもの
+		vector<float> GetFScore() const {
+			size_t inLayer = 0;
+			if (params.scaleInput != 0)
+				inLayer += 1;
+			return ((FullyConnectedLayer*)layers[inLayer].get())->GetWeightRMS();
+		}
 	};
 
 	vector<XNNData> LoadSVMLight(const string& path, int inUnits) {
@@ -1065,5 +1083,8 @@ namespace XNN {
 	}
 	vector<float> XNNModel::Predict(vector<float>&& in) const {
 		return impl->Predict(move(in));
+	}
+	vector<float> XNNModel::GetFScore() const {
+		return impl->GetFScore();
 	}
 }

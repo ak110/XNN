@@ -65,12 +65,17 @@ XGBoost風のインターフェースでお手軽に使えるものを目指し�
 * task [既定値=train]
   - train -- 学習する。
   - pred  -- test:dataを評価して結果の統計情報を表示する。
+  - fscore -- 特徴の重要度のようなものを算出する。(ただの入力層の重みのRMSなので参考程度のもの)
 * model_in [既定値=XNN.model]
-  - predで使用するモデルのファイルパス
+  - pred、fscoreで使用するモデルのファイルパス
 * model_out [既定値=XNN.model]
   - trainでモデルを保存するファイルパス
 * name_pred [既定値=pred.txt]
   - predで結果を出力するテキストファイルのパス
+* name_fscore [既定値=fscore.txt]
+  - fscoreで結果を出力するテキストファイルのパス
+* fmap [既定値=fmap.tsv]
+  - fscoreで各featureに名前を付ける場合のファイルのパス。タブ区切りでインデックスと名前を記述する。
 * verbose [既定値=1]
   - 学習の途中経過を多めに出すなら1。(データやネットワークが大きい時用)
 

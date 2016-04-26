@@ -3,7 +3,9 @@
 #include <boost/algorithm/string.hpp>
 #include <iostream>
 #include <fstream>
+#include <sstream>
 #include <unordered_map>
+#include <numeric>
 
 using namespace XNN;
 
@@ -63,6 +65,50 @@ struct Config {
 	}
 };
 
+// 特徴のindexに対応する名前を持つタブ区切りテキストファイルを扱う
+// 読み込めなかった場合やファイルに記録されていなかった場合は、
+// indexが0,1,2, ...のとき f1, f2, f3, ... とする。
+struct FeatureMap {
+	unordered_map<size_t, string> fmap;
+	FeatureMap(const string& fmapPath) {
+		ifstream is(fmapPath);
+		for (string line; getline(is, line); ) {
+			auto t1 = line.find('\t');
+			auto t2 = line.find_last_of('\t');
+			if (t1 == string::npos)
+				continue;
+			if (t2 == string::npos)
+				t2 = line.length();
+			fmap[stoi(line.substr(0, t1))] = boost::trim_copy(
+				line.substr(t1 + 1, t2 - (t1 + 1)));
+		}
+	}
+	string GetName(size_t i) const {
+		auto it = fmap.find(i + 1);
+		if (it != fmap.end())
+			return it->second;
+		return "f" + to_string(i + 1);
+	}
+};
+
+// FScoreの文字列化
+string FScoreToString(const vector<float>& fscore, const string& fmapPath) {
+	// 特徴の名前の取得
+	FeatureMap fmap(fmapPath);
+	vector<pair<string, float>> data;
+	for (size_t i = 0; i < fscore.size(); i++)
+		data.push_back(make_pair(fmap.GetName(i), fscore[i]));
+	// 降順ソート
+	sort(data.begin(), data.end(), [](const pair<string, float>& x, const pair<string, float>& y) {
+		return greater<float>()(x.second, y.second);
+	});
+	// 文字列化
+	stringstream ss;
+	for (const auto& p : data)
+		ss << p.first << "\t" << p.second << endl;
+	return ss.str();
+}
+
 int Process(int argc, char* argv[]) {
 	string confPath;
 	unordered_map<string, string> argConfig;
@@ -119,6 +165,13 @@ int Process(int argc, char* argv[]) {
 		XNNModel dnn(modelPath);
 		auto r = dnn.Predict(LoadSVMLight(config.GetRequired("test:data"), params.inUnits));
 		ofstream(predPath) << r;
+	} else if (task == "fscore") {
+		auto params = config.CreateParams();
+		auto modelPath = config.Get("model_in", "XNN.model");
+		auto fmapPath = config.Get("fmap", "fmap.tsv");
+		auto fscorePath = config.Get("name_fscore", "fscore.txt");
+		XNNModel dnn(modelPath);
+		ofstream(fscorePath) << FScoreToString(dnn.GetFScore(), fmapPath);
 	} else {
 		throw XNNException("taskの値が不正。task=" + task);
 	}
