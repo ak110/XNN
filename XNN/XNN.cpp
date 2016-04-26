@@ -597,7 +597,7 @@ namespace XNN {
 			switch (Act) {
 			case ActivationFunction::ReLU:
 				for (size_t o = 0; o < errorOut.size(); o++)
-					if (out[o] <= FLT_EPSILON)
+					if (in[o] <= 0)
 						errorOut[o] = 0.0f;
 				break;
 			case ActivationFunction::Sigmoid:

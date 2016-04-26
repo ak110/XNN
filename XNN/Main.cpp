@@ -9,13 +9,6 @@
 
 using namespace XNN;
 
-int Usage() {
-	cerr << "使い方: XNN <config> [<options>]" << endl;
-	cerr << "  <options>  xxx=yyy形式で、configの項目を上書き出来ます。" << endl;
-	cerr << endl;
-	return 1;
-}
-
 struct Config {
 	unordered_map<string, string> config;
 	void Add(const string& name, const string& value) {
@@ -109,6 +102,13 @@ string FScoreToString(const vector<float>& fscore, const string& fmapPath) {
 	return ss.str();
 }
 
+int Usage() {
+	cerr << "使い方: XNN <config> [<options>]" << endl;
+	cerr << "  <options>  xxx=yyy形式で、configの項目を上書き出来ます。" << endl;
+	cerr << endl;
+	return 1;
+}
+
 int Process(int argc, char* argv[]) {
 	string confPath;
 	unordered_map<string, string> argConfig;
@@ -162,9 +162,9 @@ int Process(int argc, char* argv[]) {
 		auto params = config.CreateParams();
 		auto modelPath = config.Get("model_in", "XNN.model");
 		auto predPath = config.Get("name_pred", "pred.txt");
+		auto data = LoadSVMLight(config.GetRequired("test:data"), params.inUnits);
 		XNNModel dnn(modelPath);
-		auto r = dnn.Predict(LoadSVMLight(config.GetRequired("test:data"), params.inUnits));
-		ofstream(predPath) << r;
+		ofstream(predPath) << dnn.Predict(move(data));
 	} else if (task == "fscore") {
 		auto params = config.CreateParams();
 		auto modelPath = config.Get("model_in", "XNN.model");
