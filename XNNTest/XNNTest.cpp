@@ -22,14 +22,25 @@ TEST(XNN, Adam) {
 	EXPECT_NEAR(0.00096495, optimizer.GetStep(0, 1.5, 5), 0.000001);
 }
 
-TEST(XNN, Activation) {
-	EXPECT_EQ(0.0f, activation<ActivationFunction::ReLU>(-3));
-	EXPECT_EQ(3.0f, activation<ActivationFunction::ReLU>(+3));
-	EXPECT_EQ(0.0f, activation<ActivationFunction::Sigmoid>(-100));
-	EXPECT_EQ(0.5f, activation<ActivationFunction::Sigmoid>(0));
-	EXPECT_EQ(1.0f, activation<ActivationFunction::Sigmoid>(100));
-	EXPECT_EQ(-3.0f, activation<ActivationFunction::Identity>(-3));
-	EXPECT_EQ(+3.0f, activation<ActivationFunction::Identity>(+3));
+namespace {
+	template<XNNActivation Act>
+	float activation(float x) {
+		vector<float> out;
+		ActivationLayer<Act>(1).Forward({ x }, out);
+		EXPECT_EQ(1, out.size());
+		return out[0];
+	}
+}
+TEST(XNN, ActivationLayer) {
+	EXPECT_EQ(0.0f, activation<XNNActivation::ReLU>(-3));
+	EXPECT_EQ(3.0f, activation<XNNActivation::ReLU>(+3));
+	EXPECT_EQ(-0.25f, activation<XNNActivation::PReLU>(-1)); // 重みが初期値の場合
+	EXPECT_EQ(1.0f, activation<XNNActivation::PReLU>(+1));
+	EXPECT_EQ(0.0f, activation<XNNActivation::Sigmoid>(-100));
+	EXPECT_EQ(0.5f, activation<XNNActivation::Sigmoid>(0));
+	EXPECT_EQ(1.0f, activation<XNNActivation::Sigmoid>(100));
+	EXPECT_EQ(-3.0f, activation<XNNActivation::Identity>(-3));
+	EXPECT_EQ(+3.0f, activation<XNNActivation::Identity>(+3));
 }
 
 TEST(XNN, SVNLight) {

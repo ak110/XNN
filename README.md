@@ -45,6 +45,9 @@ XGBoost風のインターフェースでお手軽に使えるものを目指し�
   - 出力のユニット数。1以上。多クラス分類の場合はクラス数。
 * hidden_layers
   - 隠れ層の数。1以上。1でいわゆる3層NN。0以下は未対応。
+* activation [既定値=PReLU]
+  - ReLU  -- 隠れ層の活性化関数にReLUを使用する。
+  - PReLU -- 隠れ層の活性化関数にParametric ReLUを使用する。
 * scale_input [既定値=true]
   - true  -- 入力をスケーリングする。(max(1,絶対値の最大値)で割るだけ。)
   - false -- 入力をスケーリングしない。

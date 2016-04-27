@@ -51,6 +51,14 @@ struct Config {
 		else
 			throw XNNException("objectiveの値が不正: " + objective);
 
+		auto activation = Get("activation", "PReLU");
+		if (activation == "ReLU")
+			params.activation = XNNActivation::ReLU;
+		else if (activation == "PReLU")
+			params.activation = XNNActivation::PReLU;
+		else
+			throw XNNException("objectiveの値が不正: " + objective);
+
 		params.scaleInput = GetBool("scale_input", true) ? 1 : 0;
 		params.verbose = stoi(Get("verbose", "1"));
 		params.scalePosWeight = stod(Get("scale_pos_weight", "-1.0"));

@@ -36,6 +36,14 @@ namespace XNN {
 		// ソフトマックス多クラス分類
 		MultiSoftmax,
 	};
+	// 活性化関数の種類
+	enum class XNNActivation {
+		ReLU,
+		PReLU,
+		Sigmoid, // 今のところ出力層専用
+		Identity,  // 今のところ出力層専用
+		Softmax,  // 今のところ出力層専用
+	};
 #pragma pack(push, 1)
 	// パラメータ
 	struct XNNParams {
@@ -57,8 +65,10 @@ namespace XNN {
 		int32_t verbose = 1;
 		// 2クラス分類のときの正例(ラベルが1のデータ)の重み。
 		double scalePosWeight = -1;
+		// 隠れ層の活性化関数(ReLU or PReLU)
+		XNNActivation activation = XNNActivation::ReLU;
 		// 念のため互換性用(互換性は読み込みに失敗せずPredictが可能になる程度まで。学習のパラメータは随時変更してしまう。)
-		int32_t reserved[64] = {};
+		int32_t reserved[63] = {};
 		// 初期化
 		XNNParams(int inUnits, int hiddenUnits, int outUnits, int hiddenLayers)
 			: inUnits(inUnits), hiddenUnits(hiddenUnits), outUnits(outUnits), hiddenLayers(hiddenLayers) {}
