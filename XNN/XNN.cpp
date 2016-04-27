@@ -1022,13 +1022,13 @@ namespace XNN {
 		}
 	};
 
-	vector<XNNData> LoadSVMLight(const string& path, int inUnits) {
+	vector<XNNData> LoadSVMLight(const string& path, int inUnits, int fMinIndex) {
 		ifstream is(path);
 		if (!is)
 			throw XNNException(path + "が開けませんでした。");
-		return LoadSVMLight(is, inUnits);
+		return LoadSVMLight(is, inUnits, fMinIndex);
 	}
-	vector<XNNData> LoadSVMLight(istream& is, int inUnits) {
+	vector<XNNData> LoadSVMLight(istream& is, int inUnits, int fMinIndex) {
 		vector<XNNData> result;
 		for (string line; getline(is, line); ) {
 			XNNData data;
@@ -1046,10 +1046,10 @@ namespace XNN {
 				auto coron = token.find(':');
 				if (coron != string::npos) {
 					auto index = stoll(token.substr(0, coron));
-					if (index <= 0)
-						throw XNNException("特徴のインデックスが0以下: 行の内容=" + line);
-					if (inUnits < index)
-						throw XNNException("特徴のインデックスが" + to_string(inUnits + 1) + "以上: 行の内容=" + line);
+					if (index < fMinIndex)
+						throw XNNException("特徴のインデックスが" + to_string(fMinIndex) + "未満: 行の内容=" + line);
+					if (inUnits + fMinIndex <= index)
+						throw XNNException("特徴のインデックスが" + to_string(inUnits + fMinIndex) + "以上: 行の内容=" + line);
 					data.in[index - 1] = stof(token.substr(coron + 1));
 				}
 			}
@@ -1057,13 +1057,13 @@ namespace XNN {
 		}
 		return result;
 	}
-	void SaveSVMLight(const string& path, const vector<XNNData>& data) {
+	void SaveSVMLight(const string& path, const vector<XNNData>& data, int fMinIndex) {
 		ofstream os(path);
 		if (!os)
 			throw XNNException(path + "が開けませんでした。");
-		SaveSVMLight(os, data);
+		SaveSVMLight(os, data, fMinIndex);
 	}
-	void SaveSVMLight(ostream& os, const vector<XNNData>& data) {
+	void SaveSVMLight(ostream& os, const vector<XNNData>& data, int fMinIndex) {
 		for (auto& d : data) {
 			for (size_t i = 0; i < d.out.size(); i++) {
 				if (0 < i)
@@ -1071,7 +1071,7 @@ namespace XNN {
 				os << d.out[i];
 			}
 			for (size_t i = 0; i < d.in.size(); i++)
-				os << " " << (i + 1) << ":" << d.in[i];
+				os << " " << (i + fMinIndex) << ":" << d.in[i];
 			os << endl;
 		}
 	}

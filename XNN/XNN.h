@@ -21,11 +21,11 @@ namespace XNN {
 	};
 
 	// svmlight形式(若干独自拡張)を読み込む
-	vector<XNNData> LoadSVMLight(const string& path, int inUnits);
-	vector<XNNData> LoadSVMLight(istream& is, int inUnits);
+	vector<XNNData> LoadSVMLight(const string& path, int inUnits, int fMinIndex = 1);
+	vector<XNNData> LoadSVMLight(istream& is, int inUnits, int fMinIndex = 1);
 	// svmlight形式(若干独自拡張)の保存
-	void SaveSVMLight(const string& path, const vector<XNNData>& data);
-	void SaveSVMLight(ostream& os, const vector<XNNData>& data);
+	void SaveSVMLight(const string& path, const vector<XNNData>& data, int fMinIndex = 1);
+	void SaveSVMLight(ostream& os, const vector<XNNData>& data, int fMinIndex = 1);
 
 	// 目的関数の種類
 	enum struct XNNObjective {
@@ -57,7 +57,7 @@ namespace XNN {
 		int32_t verbose = 1;
 		// 2クラス分類のときの正例(ラベルが1のデータ)の重み。
 		double scalePosWeight = -1;
-		// 念のため互換性用
+		// 念のため互換性用(互換性は読み込みに失敗せずPredictが可能になる程度まで。学習のパラメータは随時変更してしまう。)
 		int32_t reserved[64] = {};
 		// 初期化
 		XNNParams(int inUnits, int hiddenUnits, int outUnits, int hiddenLayers)

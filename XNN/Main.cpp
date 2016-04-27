@@ -62,7 +62,7 @@ struct Config {
 // 読み込めなかった場合やファイルに記録されていなかった場合は、
 // indexが0,1,2, ...のとき f1, f2, f3, ... とする。
 struct FeatureMap {
-	unordered_map<size_t, string> fmap;
+	unordered_map<int, string> fmap;
 	FeatureMap(const string& fmapPath) {
 		ifstream is(fmapPath);
 		for (string line; getline(is, line); ) {
@@ -76,21 +76,21 @@ struct FeatureMap {
 				line.substr(t1 + 1, t2 - (t1 + 1)));
 		}
 	}
-	string GetName(size_t i) const {
-		auto it = fmap.find(i + 1);
+	string GetName(int i) const {
+		auto it = fmap.find(i);
 		if (it != fmap.end())
 			return it->second;
-		return "f" + to_string(i + 1);
+		return "f" + to_string(i);
 	}
 };
 
 // FScoreの文字列化
-string FScoreToString(const vector<float>& fscore, const string& fmapPath) {
+string FScoreToString(const vector<float>& fscore, const string& fmapPath, int fMinIndex) {
 	// 特徴の名前の取得
 	FeatureMap fmap(fmapPath);
 	vector<pair<string, float>> data;
 	for (size_t i = 0; i < fscore.size(); i++)
-		data.push_back(make_pair(fmap.GetName(i), fscore[i]));
+		data.push_back(make_pair(fmap.GetName((int)i + fMinIndex), fscore[i]));
 	// 降順ソート
 	sort(data.begin(), data.end(), [](const pair<string, float>& x, const pair<string, float>& y) {
 		return greater<float>()(x.second, y.second);
@@ -149,20 +149,21 @@ int Process(int argc, char* argv[]) {
 	}
 
 	auto task = config.Get("task", "train");
+	auto fMinIndex = stoi(config.Get("feature_min_index", "1"));
 	if (task == "train") {
 		auto params = config.CreateParams();
 		auto modelPath = config.Get("model_out", "XNN.model");
 		XNNModel dnn(params);
 		dnn.Train(
-			LoadSVMLight(config.GetRequired("data"), params.inUnits),
-			LoadSVMLight(config.GetRequired("test:data"), params.inUnits));
+			LoadSVMLight(config.GetRequired("data"), params.inUnits, fMinIndex),
+			LoadSVMLight(config.GetRequired("test:data"), params.inUnits, fMinIndex));
 		dnn.Save(modelPath);
 		cout << "保存完了: " << modelPath << endl;
 	} else if (task == "pred") {
 		auto params = config.CreateParams();
 		auto modelPath = config.Get("model_in", "XNN.model");
 		auto predPath = config.Get("name_pred", "pred.txt");
-		auto data = LoadSVMLight(config.GetRequired("test:data"), params.inUnits);
+		auto data = LoadSVMLight(config.GetRequired("test:data"), params.inUnits, fMinIndex);
 		XNNModel dnn(modelPath);
 		ofstream(predPath) << dnn.Predict(move(data));
 	} else if (task == "fscore") {
@@ -171,7 +172,7 @@ int Process(int argc, char* argv[]) {
 		auto fmapPath = config.Get("fmap", "fmap.tsv");
 		auto fscorePath = config.Get("name_fscore", "fscore.txt");
 		XNNModel dnn(modelPath);
-		ofstream(fscorePath) << FScoreToString(dnn.GetFScore(), fmapPath);
+		ofstream(fscorePath) << FScoreToString(dnn.GetFScore(), fmapPath, fMinIndex);
 	} else {
 		throw XNNException("taskの値が不正。task=" + task);
 	}
