@@ -625,6 +625,9 @@ namespace XNN {
 
 		void Save(const string& path) const {
 			ofstream fs(path, ios_base::binary);
+			Save(fs);
+		}
+		void Save(ostream& fs) const {
 			fs.write((const char*)&params, sizeof params);
 			for (auto& l : layers)
 				l->Save(fs);
@@ -633,6 +636,9 @@ namespace XNN {
 			ifstream fs(path, ios_base::binary);
 			if (!fs)
 				throw XNNException(path + "が開けませんでした。");
+			Load(fs);
+		}
+		void Load(istream& fs) {
 			fs.read((char*)&params, sizeof params);
 			Initialize();
 			for (auto& l : layers)
@@ -775,6 +781,8 @@ namespace XNN {
 
 			double minRMSE = numeric_limits<double>::max();
 			int earlyStoppingCount = 0;
+			stringstream bestModel;
+
 			size_t testSize = min(max(testData.size(), (size_t)10000), trainData.size());
 
 			for (size_t epoch = 0; ; epoch++) {
@@ -831,11 +839,18 @@ namespace XNN {
 				if (rmse < 0.005)
 					break; // 充分小さければ止まる
 				if (rmse < minRMSE) {
+					// 最高記録を更新
 					minRMSE = rmse;
 					earlyStoppingCount = 0;
+					// モデルを保存
+					bestModel = stringstream();
+					Save(bestModel);
 				} else {
-					if (params.earlyStoppingTolerance < ++earlyStoppingCount)
+					if (params.earlyStoppingTolerance < ++earlyStoppingCount) {
+						// 最高記録のモデルを復元
+						Load(bestModel);
 						break;
+					}
 				}
 
 				// シャッフル
