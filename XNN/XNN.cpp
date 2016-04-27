@@ -1,4 +1,5 @@
 ﻿#include "XNN.h"
+#include <omp.h>
 #include <atomic>
 #include <algorithm>
 #include <random>
@@ -294,7 +295,7 @@ namespace XNN {
 		// 重みのスケール。大きくすると、学習率が大きくL2が小さくなる。
 		double scale;
 		// ペナルティ
-		double l1 = 0.001, l2 = 0.01;
+		double l1 = 0, l2 = 0;
 		// 更新回数のカウンタ
 		uint64_t t;
 
@@ -327,7 +328,6 @@ namespace XNN {
 	struct AdamOptimizer : public OptimizerBase<AdamOptimizer> {
 		unique_ptr<double[]> m;
 		unique_ptr<double[]> v;
-		double alpha = 0.001, beta1 = 0.9, beta2 = 0.999, epsilon = 1e-8;
 
 		AdamOptimizer(size_t dimension, double scale) : OptimizerBase(dimension, scale), m(new double[dimension]), v(new double[dimension]) {
 			fill(m.get(), m.get() + dimension, 0.0);
@@ -335,6 +335,7 @@ namespace XNN {
 		}
 
 		double GetStep(size_t i, double g, uint64_t lt) {
+			const double alpha = 0.001, beta1 = 0.9, beta2 = 0.999, epsilon = 1e-8;
 			m[i] = beta1 * m[i] + (1.0 - beta1) * g;
 			v[i] = beta2 * v[i] + (1.0 - beta2) * g * g;
 			auto hm = m[i] / (1.0 - pow(beta1, lt));
@@ -368,11 +369,11 @@ namespace XNN {
 		// 学習率を程よくするために、入力のL1ノルムの平均(の推定値)を受け取り、出力のL1ノルムの平均(の推定値)を返す。(順に伝搬させる)
 		virtual void Initialize(const vector<XNNData>& data, mt19937_64& rnd, double inputNorm, double& outputNorm) = 0;
 		// 学習するクラスを作る
-		virtual unique_ptr<ILayerTrainer> CreateTrainer() {
+		virtual unique_ptr<ILayerTrainer> CreateTrainer(const XNNParams& params, mt19937_64& rnd) {
 			return unique_ptr<ILayerTrainer>(new NullLayerTrainer());
 		}
 		// 順伝搬
-		virtual void Forward(const vector<float>& in, vector<float>& out) const {
+		virtual void Forward(const vector<float>& in, vector<float>& out, ILayerTrainer* trainer) const {
 			out = in;
 		}
 		// 逆伝搬
@@ -425,7 +426,7 @@ namespace XNN {
 			outputNorm = l1 / data.size();
 		}
 		// 順伝搬
-		void Forward(const vector<float>& in, vector<float>& out) const override {
+		void Forward(const vector<float>& in, vector<float>& out, ILayerTrainer* trainer) const override {
 			out = in;
 			out *= scale;
 		}
@@ -474,16 +475,16 @@ namespace XNN {
 			FullyConnectedLayer& owner;
 			AdamOptimizer optimizerW, optimizerB;
 			DenseVector<> gradW, gradB;
-			Trainer(FullyConnectedLayer& owner) :
+			Trainer(FullyConnectedLayer& owner, const XNNParams& params) :
 				owner(owner),
 				// 入力の大きさに応じて謎チューニング
 				optimizerW(owner.weights.size(), 10.0 / sqrt(owner.inputNorm)),
 				optimizerB(owner.biases.size(), 10.0 / sqrt(owner.inputNorm)),
 				gradW(owner.weights.size()),
 				gradB(owner.biases.size()) {
-				// バイアスは正則化項を入れない
-				optimizerB.l1 = 0;
-				optimizerB.l2 = 0;
+				// 正則化項
+				optimizerW.l1 = params.l1;
+				optimizerW.l2 = params.l2;
 			}
 			void Clear() override {
 				gradW.Clear();
@@ -495,11 +496,11 @@ namespace XNN {
 			}
 		};
 		// 学習するクラスを作る
-		unique_ptr<ILayerTrainer> CreateTrainer() override {
-			return unique_ptr<ILayerTrainer>(new Trainer(*this));
+		unique_ptr<ILayerTrainer> CreateTrainer(const XNNParams& params, mt19937_64& rnd) override {
+			return unique_ptr<ILayerTrainer>(new Trainer(*this, params));
 		}
 		// 順伝搬
-		void Forward(const vector<float>& in, vector<float>& out) const override {
+		void Forward(const vector<float>& in, vector<float>& out, ILayerTrainer* trainer) const override {
 			assert(in.size() == inUnits);
 			out.clear();
 			out.resize(outUnits, 0.0f);
@@ -557,7 +558,7 @@ namespace XNN {
 			}
 		}
 		// 順伝搬
-		void Forward(const vector<float>& in, vector<float>& out) const override {
+		void Forward(const vector<float>& in, vector<float>& out, ILayerTrainer* trainer) const override {
 			out = in;
 			switch (Act) {
 			case XNNActivation::ReLU:
@@ -567,6 +568,8 @@ namespace XNN {
 			case XNNActivation::Sigmoid:
 				for (auto& x : out)
 					x = 1.0f / (1.0f + exp(-x));
+				break;
+			case XNNActivation::Identity:
 				break;
 			case XNNActivation::Softmax:
 				{
@@ -593,6 +596,7 @@ namespace XNN {
 						errorOut[o] = 0.0f;
 				break;
 			case XNNActivation::Sigmoid:
+			case XNNActivation::Identity:
 			case XNNActivation::Softmax:
 				// 中間層の場合はここで微分する必要があるが、
 				// 現状は出力層限定なのでそのまま伝搬させる。
@@ -629,12 +633,8 @@ namespace XNN {
 			DenseVector<> gradW;
 			Trainer(ActivationLayer<XNNActivation::PReLU>& owner) :
 				owner(owner),
-				// 入力の大きさに応じて謎チューニング
 				optimizerW(owner.weights.size(), 1),
 				gradW(owner.weights.size()) {
-				// とりあえず(?)正則化項無し
-				optimizerW.l1 = 0;
-				optimizerW.l2 = 0;
 			}
 			void Clear() override {
 				gradW.Clear();
@@ -644,11 +644,11 @@ namespace XNN {
 			}
 		};
 		// 学習するクラスを作る
-		unique_ptr<ILayerTrainer> CreateTrainer() override {
+		unique_ptr<ILayerTrainer> CreateTrainer(const XNNParams& params, mt19937_64& rnd) override {
 			return unique_ptr<ILayerTrainer>(new Trainer(*this));
 		}
 		// 順伝搬
-		void Forward(const vector<float>& in, vector<float>& out) const override {
+		void Forward(const vector<float>& in, vector<float>& out, ILayerTrainer* trainer) const override {
 			assert(in.size() == inUnits);
 			out = in;
 			for (size_t i = 0; i < inUnits; i++)
@@ -671,6 +671,78 @@ namespace XNN {
 					// wの勾配
 					trainer.gradW += make_pair(i, errorIn[i] * in[i]);
 				}
+			}
+		}
+	};
+	struct DropoutLayer : public ILayer {
+		const uint64_t inUnits;
+		const float keepProb;
+		DropoutLayer(uint64_t inUnits, float keepProb) : inUnits(inUnits), keepProb(keepProb) {}
+		// 学習用に初期化
+		void Initialize(const vector<XNNData>&, mt19937_64&, double inputNorm, double& outputNorm) override {
+			outputNorm = inputNorm / 2;
+		}
+		struct Trainer : public ILayerTrainer {
+			vector<mt19937_64> rnds;
+			vector<unique_ptr<bool[]>> keepFlags;
+			Trainer(mt19937_64& rnd, uint64_t inUnits) {
+				auto threadCount = omp_get_max_threads();
+				array<mt19937_64::result_type, 16> seed;
+				for (int i = 0; i < threadCount; i++) {
+					generate(seed.begin(), seed.end(), ref(rnd));
+					seed_seq seq(seed.begin(), seed.end());
+					rnds.emplace_back(mt19937_64(seq));
+					keepFlags.emplace_back(new bool[inUnits]);
+				}
+			}
+			void Clear() override {}
+			void Update() override {}
+		};
+		// 学習するクラスを作る
+		unique_ptr<ILayerTrainer> CreateTrainer(const XNNParams& params, mt19937_64& rnd) {
+			return unique_ptr<ILayerTrainer>(new Trainer(rnd, inUnits));
+		}
+		// 順伝搬
+		void Forward(const vector<float>& in, vector<float>& out, ILayerTrainer* trainer_) const override {
+			assert(in.size() == inUnits);
+			out = in;
+			if (trainer_ != nullptr) {
+				// ランダムにdropする
+				auto tid = omp_get_thread_num();
+				auto& trainer = (Trainer&)*trainer_;
+				auto rnd = trainer.rnds[tid];
+				auto keepFlags = trainer.keepFlags[tid].get();
+
+				auto keepCount = (size_t)round(inUnits * keepProb);
+				for (size_t i = 0; i < keepCount; i++)
+					keepFlags[i] = true;
+				for (size_t i = keepCount; i < inUnits; i++)
+					keepFlags[i] = false;
+				shuffle(keepFlags, keepFlags + inUnits, rnd);
+
+				for (size_t i = 0; i < inUnits; i++)
+					if (keepFlags[i])
+						out[i] /= keepProb; // keep
+					else
+						out[i] = 0; // drop
+			}
+		}
+		// 逆伝搬
+		void Backward(ILayerTrainer& trainer_,
+			const vector<float>& in, const vector<float>& out,
+			vector<float>& errorOut, const vector<float>& errorIn) const override {
+			assert(in.size() == inUnits);
+			assert(out.size() == inUnits);
+			assert(errorIn.size() == inUnits);
+			auto tid = omp_get_thread_num();
+			auto& trainer = (Trainer&)trainer_;
+			auto keepFlags = trainer.keepFlags[tid].get();
+			errorOut = errorIn;
+			for (size_t i = 0; i < inUnits; i++) {
+				if (keepFlags[i])
+					errorOut[i] /= keepProb; // keep
+				else
+					errorOut[i] = 0; // drop
 			}
 		}
 	};
@@ -716,39 +788,44 @@ namespace XNN {
 				throw XNNException("hidden_unitsが1未満");
 			if (params.outUnits < 1)
 				throw XNNException("out_unitsが1未満");
-			if (params.hiddenLayers < 1)
-				throw XNNException("hidden_layersが1未満");
+			if (params.hiddenLayers < 0)
+				throw XNNException("hidden_layersが0未満");
 
-			if (params.activation == XNNActivation::ReLU)
-				InitializeImpl<XNNActivation::ReLU>();
-			else if (params.activation == XNNActivation::PReLU)
-				InitializeImpl<XNNActivation::PReLU>();
-			else
-				throw XNNException("activationが不正");
-		}
-		template<XNNActivation Act>
-		void InitializeImpl() {
 			layers.clear();
 
+			// 前処理の層
 			if (params.scaleInput != 0)
 				layers.emplace_back(new InputScalingLayer(params.inUnits));
 
-			layers.emplace_back(
-				new FullyConnectedLayer(params.inUnits, params.hiddenUnits));
-			layers.emplace_back(new ActivationLayer<Act>(params.hiddenUnits));
-
-			for (int i = 0; i < params.hiddenLayers - 1; i++) {
-				layers.emplace_back(
-					new FullyConnectedLayer(params.hiddenUnits, params.hiddenUnits));
-				layers.emplace_back(new ActivationLayer<Act>(params.hiddenUnits));
+			// 入力層・中間層
+			for (int i = 0; i < params.hiddenLayers; i++) {
+				int inUnits = i == 0 ? params.inUnits : params.hiddenUnits;
+				int outUnits = params.hiddenUnits;
+				layers.emplace_back(new FullyConnectedLayer(inUnits, outUnits));
+				if (params.activation == XNNActivation::ReLU)
+					layers.emplace_back(new ActivationLayer<XNNActivation::ReLU>(outUnits));
+				else if (params.activation == XNNActivation::PReLU)
+					layers.emplace_back(new ActivationLayer<XNNActivation::PReLU>(outUnits));
+				else
+					throw XNNException("activationが不正: " + ToString(params.activation));
+				if (params.dropoutKeepProb < 1.0f) {
+					if (params.dropoutKeepProb < 0.0f)
+						throw XNNException("dropout_keep_probが不正: " + to_string(params.dropoutKeepProb));
+					layers.emplace_back(new DropoutLayer(outUnits, params.dropoutKeepProb));
+				}
 			}
-
-			layers.emplace_back(
-				new FullyConnectedLayer(params.hiddenUnits, params.outUnits));
-			if (params.objective == XNNObjective::MultiSoftmax)
-				layers.emplace_back(new ActivationLayer<XNNActivation::Softmax>(params.hiddenUnits));
-			else
-				layers.emplace_back(new ActivationLayer<XNNActivation::Sigmoid>(params.hiddenUnits));
+			// 出力層
+			{
+				int inUnits = params.hiddenLayers <= 0 ? params.inUnits : params.hiddenUnits;
+				int outUnits = params.outUnits;
+				layers.emplace_back(new FullyConnectedLayer(inUnits, outUnits));
+				if (params.objective == XNNObjective::MultiSoftmax)
+					layers.emplace_back(new ActivationLayer<XNNActivation::Softmax>(outUnits));
+				else if (params.objective == XNNObjective::RegLinear)
+					layers.emplace_back(new ActivationLayer<XNNActivation::Identity>(outUnits));
+				else
+					layers.emplace_back(new ActivationLayer<XNNActivation::Sigmoid>(outUnits));
+			}
 		}
 		// データのチェック
 		void CheckData(vector<XNNData>& data) const {
@@ -803,9 +880,9 @@ namespace XNN {
 						array<size_t, 2> counts = { { 0, 0 } };
 						for (auto& d : trainData)
 							counts[(int)round(d.out[0])]++;
-						params.scalePosWeight = (double)counts[0] / counts[1];
+						params.scalePosWeight = (float)counts[0] / counts[1];
 					} else {
-						params.scalePosWeight = 1.0;
+						params.scalePosWeight = 1;
 					}
 				}
 				cout << "scale_pos_weight = " << params.scalePosWeight << endl;
@@ -832,7 +909,7 @@ namespace XNN {
 			// 学習の準備
 			trainers.clear();
 			for (auto& l : layers)
-				trainers.push_back(l->CreateTrainer());
+				trainers.push_back(l->CreateTrainer(params, mt));
 
 			// データが足りなければ増やす (整数倍に繰り返す)
 			// 最低10万を1セットとする。
@@ -844,9 +921,9 @@ namespace XNN {
 
 			// 設定の確認のためネットワークの大きさを表示
 			cout << "ネットワーク: " << params.inUnits
-				<< (params.activation == XNNActivation::PReLU ? "+PReLU" : "")
+				<< ":" << ToString(params.activation)
 				<< " - (" << params.hiddenUnits
-				<< (params.activation == XNNActivation::PReLU ? "+PReLU" : "")
+				<< ":" << ToString(params.activation)
 				<< " x " << params.hiddenLayers
 				<< ") - " << params.outUnits
 				<< endl;
@@ -861,7 +938,7 @@ namespace XNN {
 
 			size_t testSize = min(max(testData.size(), (size_t)10000), trainData.size());
 
-			for (size_t epoch = 0; ; epoch++) {
+			for (size_t epoch = 1; ; epoch++) {
 				// 学習
 				{
 					ProgressTimer timer;
@@ -874,7 +951,7 @@ namespace XNN {
 						if (1 <= params.verbose && (mb + 1) % (MaxMB / 10) == 0) {
 							timer.Set(mb + 1, MaxMB);
 							cout << "学習:"
-								<< " epoch=" << (epoch + 1)
+								<< " epoch=" << epoch
 								<< " " << timer.ToStringCount()
 								<< " train={" << score.ToString() << "}"
 								<< " " << timer.ToStringTime()
@@ -893,7 +970,8 @@ namespace XNN {
 				// 表示
 				if (1 <= params.verbose || pred2.size() <= 1) {
 					for (size_t o = 0; o < pred2.size(); o++)
-						cout << "検証: out[" << o << "] :"
+						cout << "検証: epoch=" << epoch
+						<< " out[" << o << "] :"
 						<< " train={" << pred1[o].ToString() << "}"
 						<< " test={" << pred2[o].ToString() << "}"
 						<< endl;
@@ -904,7 +982,8 @@ namespace XNN {
 					average2 += pred2[o];
 				}
 				if (1 < pred2.size()) {
-					cout << "検証: average:"
+					cout << "検証: epoch=" << epoch
+						<< " average:"
 						<< " train={" << average1.ToString() << "}"
 						<< " test={" << average2.ToString() << "}"
 						<< endl;
@@ -945,8 +1024,8 @@ namespace XNN {
 			// scale_pos_weightの比率を保ちつつ、あまり極端な値にならないスケールを算出
 			// 例: scale_pos_weight=1なら{ 1, 1 }、10なら{ 0.1818, 1.818 }。
 			const array<float, 2> binaryScales = { {
-				2 / ((float)params.scalePosWeight + 1),
-				(float)params.scalePosWeight * 2 / ((float)params.scalePosWeight + 1),
+				2 / (params.scalePosWeight + 1),
+				params.scalePosWeight * 2 / (params.scalePosWeight + 1),
 			} };
 
 			RegressionScore score;
@@ -969,7 +1048,7 @@ namespace XNN {
 					out[0] = data.in;
 					// 順伝搬
 					for (size_t i = 0; i < layers.size(); i++)
-						layers[i]->Forward(out[i], out[i + 1]);
+						layers[i]->Forward(out[i], out[i + 1], trainers[i].get());
 					// エラーを算出
 					// ロジスティック回帰／線形二乗誤差：教師 - 予測
 					errorIn = data.out;
@@ -1032,6 +1111,7 @@ namespace XNN {
 			// 結果の集計・整形
 			vector<unique_ptr<IScore>> score;
 			switch (params.objective) {
+			case XNNObjective::RegLinear:
 			case XNNObjective::RegLogistic:
 				for (int i = 0; i < params.outUnits; i++)
 					score.emplace_back(new RegressionScore());
@@ -1066,7 +1146,8 @@ namespace XNN {
 				if (2 <= score.size())
 					cout << "--------------------------- out[" << o << "] ---------------------------" << endl;
 				cout << score[o]->ToString();
-				if (params.objective == XNNObjective::RegLogistic)
+				if (params.objective == XNNObjective::RegLinear ||
+					params.objective == XNNObjective::RegLogistic)
 					cout << endl; // TODO:そのうちなんとかする
 			}
 
@@ -1080,7 +1161,7 @@ namespace XNN {
 			vector<float> out;
 			out.reserve(params.hiddenUnits);
 			for (size_t i = 0; i < layers.size(); i++) {
-				layers[i]->Forward(in, out);
+				layers[i]->Forward(in, out, nullptr);
 				swap(in, out);
 			}
 			assert((int)in.size() == params.outUnits);
@@ -1148,6 +1229,41 @@ namespace XNN {
 				os << " " << (i + fMinIndex) << ":" << d.in[i];
 			os << endl;
 		}
+	}
+
+	struct StringTable {
+		array<const char*, 4> objectives = { {
+				"reg:linear",
+				"reg:logistic",
+				"binary:logistic",
+				"multi:softmax",
+			} };
+		array<const char*, 5> activations = { {
+				"ReLU",
+				"PReLU",
+				"Identity",
+				"Sigmoid",
+				"Softmax",
+			} };
+	} stringTable;
+
+	string ToString(XNNObjective value) {
+		return stringTable.objectives[(int)value];
+	}
+	string ToString(XNNActivation value) {
+		return stringTable.activations[(int)value];
+	}
+	XNNObjective XNNObjectiveFromString(const string& str) {
+		for (size_t i = 0; i < stringTable.objectives.size(); i++)
+			if (stringTable.objectives[i] == str)
+				return (XNNObjective)i;
+		throw XNNException("objectiveが不正: " + str);
+	}
+	XNNActivation XNNActivationFromString(const string& str) {
+		for (size_t i = 0; i < stringTable.activations.size(); i++)
+			if (stringTable.activations[i] == str)
+				return (XNNActivation)i;
+		throw XNNException("activationが不正: " + str);
 	}
 
 	XNNModel::XNNModel(const XNNParams& params)

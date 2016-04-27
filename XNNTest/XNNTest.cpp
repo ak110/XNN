@@ -13,8 +13,6 @@ TEST(XNN, Sign) {
 TEST(XNN, Adam) {
 	// Adamの挙動の備忘録のようなもの
 	AdamOptimizer optimizer(1, 1.0);
-	optimizer.l1 = 0;
-	optimizer.l2 = 0;
 	EXPECT_NEAR(0.00100000, optimizer.GetStep(0, 1.0, 1), 0.000001);
 	EXPECT_NEAR(0.00100000, optimizer.GetStep(0, 1.0, 2), 0.000001);
 	EXPECT_NEAR(0.00100000, optimizer.GetStep(0, 1.0, 3), 0.000001);
@@ -26,7 +24,7 @@ namespace {
 	template<XNNActivation Act>
 	float activation(float x) {
 		vector<float> out;
-		ActivationLayer<Act>(1).Forward({ x }, out);
+		ActivationLayer<Act>(1).Forward({ x }, out, nullptr);
 		EXPECT_EQ(1, out.size());
 		return out[0];
 	}
@@ -53,6 +51,13 @@ TEST(XNN, SVNLight) {
 	EXPECT_EQ(
 		"1.2 1:5.6 2:0.0 3:8.0 4:0.0\n"
 		"0.0,2.0 1:0.0 2:2.0 3:4.6 4:0.0\n", ss2.str());
+}
+
+TEST(XNN, ToStringFromString) {
+	for (int i = 0; i < stringTable.objectives.size(); i++)
+		EXPECT_EQ(XNNObjective(i), XNNObjectiveFromString(ToString(XNNObjective(i))));
+	for (int i = 0; i < stringTable.activations.size(); i++)
+		EXPECT_EQ(XNNActivation(i), XNNActivationFromString(ToString(XNNActivation(i))));
 }
 
 // TODO: もっとがんばる。

@@ -17,9 +17,9 @@ NNは出力をたくさん作れるので、
 
 	====== 学習 ======
 	scale_pos_weight = 1
-	ネットワーク: 2+PReLU - (16+PReLU x 10) - 3
-	検証: average: train={MAE= 0.0% RMSE= 0.0%} test={MAE= 0.0% RMSE= 0.0%}
-	学習完了: 0.751秒
+	ネットワーク: 2:PReLU - (32:PReLU x 3) - 3
+	検証: epoch=1 average: train={MAE= 0.0% RMSE= 0.0%} test={MAE= 0.0% RMSE= 0.0%}
+	学習完了: 0.807秒
 	保存完了: XNN.model
 	====== 検証 ======
 	--------------------------- out[0] ---------------------------

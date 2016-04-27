@@ -35,33 +35,18 @@ struct Config {
 		throw XNNException(name + "の値が不正: " + s);
 	}
 	XNNParams CreateParams() const {
-		XNNParams params(
-			stoi(GetRequired("in_units")),
-			stoi(GetRequired("hidden_units")),
-			stoi(GetRequired("out_units")),
-			stoi(GetRequired("hidden_layers")));
-
-		auto objective = Get("objective", "reg:logistic");
-		if (objective == "reg:logistic")
-			params.objective = XNNObjective::RegLogistic;
-		else if (objective == "binary:logistic")
-			params.objective = XNNObjective::BinaryLogistic;
-		else if (objective == "multi:softmax")
-			params.objective = XNNObjective::MultiSoftmax;
-		else
-			throw XNNException("objectiveの値が不正: " + objective);
-
-		auto activation = Get("activation", "PReLU");
-		if (activation == "ReLU")
-			params.activation = XNNActivation::ReLU;
-		else if (activation == "PReLU")
-			params.activation = XNNActivation::PReLU;
-		else
-			throw XNNException("objectiveの値が不正: " + objective);
-
+		XNNParams params(stoi(GetRequired("in_units")));
+		params.hiddenUnits = stoi(Get("hidden_units", to_string(params.hiddenUnits)));
+		params.outUnits = stoi(Get("out_units", to_string(params.outUnits)));
+		params.hiddenLayers = stoi(Get("hidden_layers", to_string(params.hiddenLayers)));
+		params.objective = XNNObjectiveFromString(Get("objective", ToString(params.objective)));
+		params.activation = XNNActivationFromString(Get("activation", ToString(params.activation)));
 		params.scaleInput = GetBool("scale_input", true) ? 1 : 0;
-		params.verbose = stoi(Get("verbose", "1"));
-		params.scalePosWeight = stod(Get("scale_pos_weight", "-1.0"));
+		params.l1 = stof(Get("l1", to_string(params.l1)));
+		params.l2 = stof(Get("l2", to_string(params.l2)));
+		params.dropoutKeepProb = stof(Get("dropout_keep_prob", to_string(params.dropoutKeepProb)));
+		params.scalePosWeight = stof(Get("scale_pos_weight", to_string(params.scalePosWeight)));
+		params.verbose = stoi(Get("verbose", to_string(params.verbose)));
 		return params;
 	}
 };
@@ -175,7 +160,6 @@ int Process(int argc, char* argv[]) {
 		XNNModel dnn(modelPath);
 		ofstream(predPath) << dnn.Predict(move(data));
 	} else if (task == "fscore") {
-		auto params = config.CreateParams();
 		auto modelPath = config.Get("model_in", "XNN.model");
 		auto fmapPath = config.Get("fmap", "fmap.tsv");
 		auto fscorePath = config.Get("name_fscore", "fscore.txt");
