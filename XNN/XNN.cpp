@@ -998,7 +998,7 @@ namespace XNN {
 					minRMSE = rmse;
 					earlyStoppingCount = 0;
 					// モデルを保存
-					bestModel = stringstream();
+					bestModel.str(""); // 空にする
 					Save(bestModel);
 				} else {
 					if (params.earlyStoppingTolerance < ++earlyStoppingCount) {
