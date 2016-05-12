@@ -155,16 +155,21 @@ int Process(int argc, char* argv[]) {
 	} else if (task == "pred") {
 		auto params = config.CreateParams();
 		auto modelPath = config.Get("model_in", "XNN.model");
-		auto predPath = config.Get("name_pred", "pred.txt");
+		auto outPath = config.Get("name_pred", "pred.txt");
 		auto data = LoadSVMLight(config.GetRequired("test:data"), params.inUnits, fMinIndex);
 		XNNModel dnn(modelPath);
-		ofstream(predPath) << dnn.Predict(move(data));
+		ofstream(outPath) << dnn.Predict(move(data));
+	} else if (task == "dump") {
+		auto modelPath = config.Get("model_in", "XNN.model");
+		auto outPath = config.Get("name_dump", "dump.txt");
+		XNNModel dnn(modelPath);
+		ofstream(outPath) << dnn.Dump();
 	} else if (task == "fscore") {
 		auto modelPath = config.Get("model_in", "XNN.model");
 		auto fmapPath = config.Get("fmap", "fmap.tsv");
-		auto fscorePath = config.Get("name_fscore", "fscore.txt");
+		auto outPath = config.Get("name_fscore", "fscore.txt");
 		XNNModel dnn(modelPath);
-		ofstream(fscorePath) << FScoreToString(dnn.GetFScore(), fmapPath, fMinIndex);
+		ofstream(outPath) << FScoreToString(dnn.GetFScore(), fmapPath, fMinIndex);
 	} else {
 		throw XNNException("taskの値が不正。task=" + task);
 	}

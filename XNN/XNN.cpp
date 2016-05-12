@@ -358,6 +358,41 @@ namespace XNN {
 		void Update() override {}
 	};
 
+	// 各層の内容を文字列化するためのクラス。今のところ書式はだいぶ適当。
+	struct Dumper {
+		stringstream ss;
+		void AddLayer(const string& name) {
+			ss << "layer: " << name << endl;
+		}
+		template<class T>
+		void AddParam(const string& name, const T& value) {
+			AddParam(name, to_string(value));
+		}
+		void AddParam(const string& name, const string& value) {
+			ss << "  " << name << ": " << value << endl;
+		}
+		void AddParam(const string& name, const vector<float>& values) {
+			AddParam(name, values.data(), 0, values.size());
+		}
+		void AddParam(const string& name, const float* ptr, size_t startIndex, size_t count) {
+			ss << "  " << name << ": [" << endl;
+			for (size_t i = 0; i < count / 8; i++) {
+				ss << "   ";
+				for (size_t j = 0; j < 8; j++)
+					ss << " " << ptr[startIndex + i * 8 + j] << ",";
+				ss << endl;
+			}
+			if (count % 8 != 0) {
+				ss << "   ";
+				for (size_t j = 0, n = count % 8; j < n; j++)
+					ss << " " << ptr[startIndex + count - n + j] << ",";
+				ss << endl;
+			}
+			ss << "  ]" << endl;
+		}
+		string ToString() const { return ss.str(); }
+	};
+
 	// 層
 	struct ILayer {
 		virtual ~ILayer() {}
@@ -365,6 +400,8 @@ namespace XNN {
 		virtual void Load(istream& s) {}
 		// モデルの保存
 		virtual void Save(ostream& s) const {}
+		// モデルの文字列化
+		virtual void Dump(Dumper& d) const = 0;
 		// 学習用に初期化
 		// 学習率を程よくするために、入力のL1ノルムの平均(の推定値)を受け取り、出力のL1ノルムの平均(の推定値)を返す。(順に伝搬させる)
 		virtual void Initialize(const vector<XNNData>& data, mt19937_64& rnd, double inputNorm, double& outputNorm) = 0;
@@ -400,6 +437,11 @@ namespace XNN {
 		void Save(ostream& s) const override {
 			s.write((const char*)&inUnits, sizeof inUnits);
 			s.write((const char*)&scale[0], scale.size() * sizeof scale[0]);
+		}
+		// モデルの文字列化
+		void Dump(Dumper& d) const override {
+			d.AddLayer("InputScaling");
+			d.AddParam("scale", scale);
 		}
 		// 学習用に初期化
 		// 学習率を程よくするために、入力のL1ノルムの平均(の推定値)を受け取り、出力のL1ノルムの平均(の推定値)を返す。(順に伝搬させる)
@@ -457,6 +499,14 @@ namespace XNN {
 			s.write((const char*)&outUnits, sizeof outUnits);
 			s.write((const char*)&weights[0], weights.size() * sizeof weights[0]);
 			s.write((const char*)&biases[0], biases.size() * sizeof biases[0]);
+		}
+		// モデルの文字列化
+		void Dump(Dumper& d) const override {
+			d.AddLayer("FullyConnected");
+			for (size_t o = 0; o < outUnits; o++)
+				d.AddParam("weights[" + to_string(o) + "]",
+					weights.data(), o * inUnits, inUnits);
+			d.AddParam("biases", biases);
 		}
 		// 学習用に初期化
 		void Initialize(const vector<XNNData>&, mt19937_64& rnd, double inputNorm_, double& outputNorm) override {
@@ -549,6 +599,11 @@ namespace XNN {
 	template<XNNActivation Act>
 	struct ActivationLayer : public ILayer {
 		ActivationLayer(uint64_t inUnits) {}
+		// モデルの文字列化
+		void Dump(Dumper& d) const override {
+			d.AddLayer("Activation");
+			d.AddParam("function", ToString(Act));
+		}
 		// 学習用に初期化
 		void Initialize(const vector<XNNData>& data, mt19937_64& rnd, double inputNorm, double& outputNorm) override {
 			switch (Act) {
@@ -621,6 +676,12 @@ namespace XNN {
 			s.write((const char*)&inUnits, sizeof inUnits);
 			s.write((const char*)&weights[0], weights.size() * sizeof weights[0]);
 		}
+		// モデルの文字列化
+		void Dump(Dumper& d) const override {
+			d.AddLayer("Activation");
+			d.AddParam("function", ToString(XNNActivation::PReLU));
+			d.AddParam("weights", weights);
+		}
 		// 学習用に初期化
 		void Initialize(const vector<XNNData>&, mt19937_64&, double inputNorm, double& outputNorm) override {
 			for (auto& x : weights)
@@ -679,6 +740,11 @@ namespace XNN {
 		const uint64_t inUnits;
 		const float keepProb;
 		DropoutLayer(uint64_t inUnits, float keepProb) : inUnits(inUnits), keepProb(keepProb) {}
+		// モデルの文字列化
+		void Dump(Dumper& d) const override {
+			d.AddLayer("Dropout");
+			d.AddParam("keepProb", keepProb);
+		}
 		// 学習用に初期化
 		void Initialize(const vector<XNNData>&, mt19937_64&, double inputNorm, double& outputNorm) override {
 			outputNorm = inputNorm / 2;
@@ -780,6 +846,12 @@ namespace XNN {
 			Initialize();
 			for (auto& l : layers)
 				l->Load(fs);
+		}
+		string Dump() const {
+			Dumper d;
+			for (auto& l : layers)
+				l->Dump(d);
+			return d.ToString();
 		}
 		void Initialize() {
 			// パラメータのチェック
@@ -1280,6 +1352,9 @@ namespace XNN {
 	}
 	void XNNModel::Load(const string& path) {
 		impl->Load(path);
+	}
+	string XNNModel::Dump() const {
+		return impl->Dump();
 	}
 	void XNNModel::Train(vector<XNNData>&& trainData, vector<XNNData>&& testData) {
 		impl->Train(move(trainData), move(testData));

@@ -51,4 +51,10 @@ TEST(Main, Heavy_AndOrXor) {
 	EXPECT_GT(result01[2], 0.5f);
 	EXPECT_GT(result10[2], 0.5f);
 	EXPECT_LT(result11[2], 0.5f);
+
+	// Dump/Save/Loadもついでにテスト
+	auto d = dnn.Dump();
+	dnn.Save("test.model.tmp");
+	dnn.Load("test.model.tmp");
+	EXPECT_EQ(d, dnn.Dump());
 }

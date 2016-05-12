@@ -104,6 +104,8 @@ namespace XNN {
 		void Save(const string& path) const;
 		// モデルの読み込み
 		void Load(const string& path);
+		// 文字列化
+		string Dump() const;
 		// 学習
 		void Train(vector<XNNData>&& trainData, vector<XNNData>&& testData);
 		// 評価(集計結果をcoutに出して、生の値をstringで返す。)
