@@ -25,7 +25,7 @@ namespace {
 	float activation(float x) {
 		vector<float> out;
 		ActivationLayer<Act>(1).Forward({ x }, out, nullptr);
-		EXPECT_EQ(1, out.size());
+		EXPECT_EQ(1, (int)out.size());
 		return out[0];
 	}
 }
@@ -54,9 +54,9 @@ TEST(XNN, SVNLight) {
 }
 
 TEST(XNN, ToStringFromString) {
-	for (int i = 0; i < stringTable.objectives.size(); i++)
+	for (int i = 0; i < (int)stringTable.objectives.size(); i++)
 		EXPECT_EQ(XNNObjective(i), XNNObjectiveFromString(ToString(XNNObjective(i))));
-	for (int i = 0; i < stringTable.activations.size(); i++)
+	for (int i = 0; i < (int)stringTable.activations.size(); i++)
 		EXPECT_EQ(XNNActivation(i), XNNActivationFromString(ToString(XNNActivation(i))));
 }
 
