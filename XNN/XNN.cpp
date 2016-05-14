@@ -814,18 +814,42 @@ namespace XNN {
 		}
 	};
 
+	struct Logger {
+		ostream* log = nullptr;
+		template<class T>
+		const Logger& operator<<(const T& value) const {
+			cout << value;
+			if (log != nullptr)
+				*log << value;
+			return *this;
+		}
+		const Logger& operator<<(ostream& (* value)(ostream&)) const {
+			cout << value;
+			if (log != nullptr)
+				*log << value;
+			return *this;
+		}
+	};
 	// 実装。
 	struct XNNModel::XNNImpl {
 		XNNParams params;
 		vector<unique_ptr<ILayer>> layers;
 		vector<unique_ptr<ILayerTrainer>> trainers;
 		mt19937_64 mt;
+		ostream* history = nullptr;
+		Logger logger;
 
 		XNNImpl(const XNNParams& params) : params(params) {
 			Initialize();
 		}
 		XNNImpl(const string& path) : params(0, 0, 0, 0) { Load(path); }
 
+		void SetLog(ostream& os) {
+			logger.log = &os;
+		}
+		void SetHistory(ostream& os) {
+			history = &os;
+		}
 		void Save(const string& path) const {
 			ofstream fs(path, ios_base::binary);
 			Save(fs);
@@ -942,8 +966,8 @@ namespace XNN {
 			CheckData(trainData);
 			CheckData(testData);
 			if (1 <= params.verbose) {
-				cout << "訓練データ: " << trainData.size() << "件" << endl;
-				cout << "検証データ: " << testData.size() << "件" << endl;
+				logger << "訓練データ: " << trainData.size() << "件" << endl;
+				logger << "検証データ: " << testData.size() << "件" << endl;
 			}
 
 			if (params.objective == XNNObjective::BinaryLogistic) {
@@ -958,7 +982,7 @@ namespace XNN {
 						params.scalePosWeight = 1;
 					}
 				}
-				cout << "scale_pos_weight = " << params.scalePosWeight << endl;
+				logger << "scale_pos_weight = " << params.scalePosWeight << endl;
 			}
 
 			// シャッフル
@@ -993,7 +1017,7 @@ namespace XNN {
 			}
 
 			// 設定の確認のためネットワークの大きさを表示
-			cout << "ネットワーク: " << params.inUnits
+			logger << "ネットワーク: " << params.inUnits
 				<< ":" << ToString(params.activation)
 				<< " - (" << params.hiddenUnits
 				<< ":" << ToString(params.activation)
@@ -1001,7 +1025,7 @@ namespace XNN {
 				<< ") - " << params.outUnits
 				<< endl;
 			if (1 <= params.verbose)
-				cout << "学習開始" << endl;
+				logger << "学習開始" << endl;
 
 			// 学習を回す。検証誤差がほぼ下がらなくなったら終了。
 
@@ -1023,7 +1047,7 @@ namespace XNN {
 
 						if (1 <= params.verbose && (mb + 1) % (MaxMB / 10) == 0) {
 							timer.Set(mb + 1, MaxMB);
-							cout << "学習:"
+							logger << "学習:"
 								<< " epoch=" << epoch
 								<< " " << timer.ToStringCount()
 								<< " train={" << score.ToString() << "}"
@@ -1043,7 +1067,7 @@ namespace XNN {
 				// 表示
 				if (1 <= params.verbose || pred2.size() <= 1) {
 					for (size_t o = 0; o < pred2.size(); o++)
-						cout << "検証: epoch=" << epoch
+						logger << "検証: epoch=" << epoch
 						<< " out[" << o << "] :"
 						<< " train={" << pred1[o].ToString() << "}"
 						<< " test={" << pred2[o].ToString() << "}"
@@ -1055,10 +1079,20 @@ namespace XNN {
 					average2 += pred2[o];
 				}
 				if (1 < pred2.size()) {
-					cout << "検証: epoch=" << epoch
+					logger << "検証: epoch=" << epoch
 						<< " average:"
 						<< " train={" << average1.ToString() << "}"
 						<< " test={" << average2.ToString() << "}"
+						<< endl;
+				}
+				if (history != nullptr) {
+					if (epoch == 1)
+						*history << "epoch,train mae,train rmse,test mae,test rmse" << endl;
+					*history << epoch
+						<< "," << average1.GetMAE()
+						<< "," << average1.GetRMSE()
+						<< "," << average2.GetMAE()
+						<< "," << average2.GetRMSE()
 						<< endl;
 				}
 
@@ -1086,7 +1120,7 @@ namespace XNN {
 			}
 
 			auto dt = high_resolution_clock::now() - startTime;
-			cout << "学習完了: " << (duration_cast<milliseconds>(dt).count() / 1000.0) << "秒" << endl;
+			logger << "学習完了: " << (duration_cast<milliseconds>(dt).count() / 1000.0) << "秒" << endl;
 		}
 		// ミニバッチによる更新
 		RegressionScore PartialFit(const std::vector<XNNData>& trainData, size_t startIndex, size_t count) {
@@ -1217,14 +1251,14 @@ namespace XNN {
 			}
 			for (size_t o = 0; o < score.size(); o++) {
 				if (2 <= score.size())
-					cout << "--------------------------- out[" << o << "] ---------------------------" << endl;
-				cout << score[o]->ToString();
+					logger << "--------------------------- out[" << o << "] ---------------------------" << endl;
+				logger << score[o]->ToString();
 				if (params.objective == XNNObjective::RegLinear ||
 					params.objective == XNNObjective::RegLogistic)
-					cout << endl; // TODO:そのうちなんとかする
+					logger << endl; // TODO:そのうちなんとかする
 			}
 
-			cout << "検証完了: " << milliSecPerPredict << "ミリ秒/回" << endl;
+			logger << "検証完了: " << milliSecPerPredict << "ミリ秒/回" << endl;
 			return raw.str();
 		}
 
@@ -1347,6 +1381,12 @@ namespace XNN {
 
 	XNNModel::~XNNModel() {}
 
+	void XNNModel::SetLog(ostream& os) {
+		impl->SetLog(os);
+	}
+	void XNNModel::SetHistory(ostream& os) {
+		impl->SetHistory(os);
+	}
 	void XNNModel::Save(const string& path) const {
 		impl->Save(path);
 	}

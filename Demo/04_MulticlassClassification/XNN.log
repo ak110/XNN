@@ -1,0 +1,26 @@
+ネットワーク: 780:PReLU - (32:PReLU x 3) - 10
+検証: epoch=1 average: train={MAE= 1.5% RMSE= 8.6%} test={MAE= 1.6% RMSE= 8.9%}
+検証: epoch=2 average: train={MAE= 1.0% RMSE= 7.0%} test={MAE= 1.1% RMSE= 7.6%}
+検証: epoch=3 average: train={MAE= 0.9% RMSE= 6.2%} test={MAE= 1.0% RMSE= 7.3%}
+検証: epoch=4 average: train={MAE= 0.7% RMSE= 5.8%} test={MAE= 0.9% RMSE= 7.2%}
+検証: epoch=5 average: train={MAE= 0.6% RMSE= 5.4%} test={MAE= 0.8% RMSE= 7.1%}
+検証: epoch=6 average: train={MAE= 0.5% RMSE= 4.9%} test={MAE= 0.8% RMSE= 7.0%}
+検証: epoch=7 average: train={MAE= 0.4% RMSE= 4.5%} test={MAE= 0.8% RMSE= 7.0%}
+検証: epoch=8 average: train={MAE= 0.4% RMSE= 4.0%} test={MAE= 0.7% RMSE= 6.9%}
+検証: epoch=9 average: train={MAE= 0.4% RMSE= 4.3%} test={MAE= 0.7% RMSE= 7.1%}
+検証: epoch=10 average: train={MAE= 0.4% RMSE= 4.0%} test={MAE= 0.7% RMSE= 7.1%}
+検証: epoch=11 average: train={MAE= 0.3% RMSE= 3.7%} test={MAE= 0.7% RMSE= 7.0%}
+検証: epoch=12 average: train={MAE= 0.3% RMSE= 4.0%} test={MAE= 0.7% RMSE= 7.2%}
+学習完了: 99.181秒
+class[0]: 適合率=98.0% 再現率=98.9% F値=98.4% 選択率= 9.9% 分布= 9.8%
+class[1]: 適合率=99.1% 再現率=98.2% F値=98.7% 選択率=11.3% 分布=11.3%
+class[2]: 適合率=97.8% 再現率=96.5% F値=97.2% 選択率=10.2% 分布=10.3%
+class[3]: 適合率=94.6% 再現率=97.8% F値=96.2% 選択率=10.4% 分布=10.1%
+class[4]: 適合率=96.9% 再現率=96.9% F値=96.9% 選択率= 9.8% 分布= 9.8%
+class[5]: 適合率=97.7% 再現率=95.5% F値=96.6% 選択率= 8.7% 分布= 8.9%
+class[6]: 適合率=96.6% 再現率=98.4% F値=97.5% 選択率= 9.8% 分布= 9.6%
+class[7]: 適合率=97.6% 再現率=96.0% F値=96.8% 選択率=10.1% 分布=10.3%
+class[8]: 適合率=95.2% 再現率=96.0% F値=95.6% 選択率= 9.8% 分布= 9.7%
+class[9]: 適合率=96.3% 再現率=95.5% F値=95.9% 選択率=10.0% 分布=10.1%
+average:  適合率=97.0% 再現率=97.0% F値=97.0%
+検証完了: 0.0227ミリ秒/回

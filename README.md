@@ -22,7 +22,10 @@ XGBoost風のインターフェースでお手軽に使えるものを目指し�
 使い方
 ------
 
-    XNN <config> [<options>]
+    XNN [<config>] [<options>]
+
+configは省略時「"XNN.conf"」を読み込む。
+optionsは「パラメータ名=値」形式でconfigの値を上書きする形で任意の個数指定可能。
 
 例:
 
@@ -75,7 +78,8 @@ XGBoost風のインターフェースでお手軽に使えるものを目指し�
   - 訓練データ。
 * test:data
   - 検証データ。学習時の終了判定にも使用する。
-* task [既定値=train]
+* task [既定値=all]
+  - all   -- 以下の全てを順番に実施する。
   - train -- 学習する。
   - pred  -- test:dataを評価して結果の統計情報を表示する。
   - dump  -- 学習結果をname_dumpのテキストファイルに出力する。(可視化用の独自形式)
@@ -84,6 +88,10 @@ XGBoost風のインターフェースでお手軽に使えるものを目指し�
   - pred、fscoreで使用するモデルのファイルパス
 * model_out [既定値=XNN.model]
   - trainでモデルを保存するファイルパス
+* name_log [既定値=XNN.log]
+  - 標準出力と同様の内容を出力するログファイルのパス
+* name_history [既定値=history.csv]
+  - trainで学習時の損失の変化を出力するCSVファイルのパス
 * name_pred [既定値=pred.txt]
   - predで結果を出力するテキストファイルのパス
 * name_dump [既定値=dump.txt]

@@ -100,6 +100,11 @@ namespace XNN {
 		XNNModel(const string& path);
 		~XNNModel();
 
+		// ログファイルを設定する
+		void SetLog(ostream& os);
+		// 学習時の損失の変化を出力するCSVファイルを設定する
+		void SetHistory(ostream& os);
+
 		// モデルの保存
 		void Save(const string& path) const;
 		// モデルの読み込み

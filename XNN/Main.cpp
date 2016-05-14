@@ -103,7 +103,7 @@ int Usage() {
 }
 
 int Process(int argc, char* argv[]) {
-	string confPath;
+	string confPath = "";
 	unordered_map<string, string> argConfig;
 	Config config;
 	// コマンドラインの取得
@@ -114,14 +114,14 @@ int Process(int argc, char* argv[]) {
 			if (eq != string::npos)
 				argConfig[boost::trim_copy(a.substr(0, eq))] =
 				boost::trim_copy(a.substr(eq + 1));
-			else if (confPath != "")
+			else if (a == "/?" || a == "--help" || confPath != "")
 				return Usage();
 			else
 				confPath = a;
 		}
 	}
 	if (confPath == "")
-		return Usage();
+		confPath = "XNN.conf";
 	// configの読み込み
 	{
 		ifstream ifs(confPath);
@@ -141,37 +141,45 @@ int Process(int argc, char* argv[]) {
 			config.Add(p.first, p.second);
 	}
 
-	auto task = config.Get("task", "train");
+	auto task = config.Get("task", "all");
 	auto fMinIndex = stoi(config.Get("feature_min_index", "1"));
-	if (task == "train") {
+	ofstream log(config.Get("name_log", "XNN.log"));
+
+	if (task == "all" || task == "train") {
 		auto params = config.CreateParams();
 		auto modelPath = config.Get("model_out", "XNN.model");
+		ofstream history(config.Get("name_history", "history.csv"));
 		XNNModel dnn(params);
+		dnn.SetLog(log);
+		dnn.SetHistory(history);
 		dnn.Train(
 			LoadSVMLight(config.GetRequired("data"), params.inUnits, fMinIndex),
 			LoadSVMLight(config.GetRequired("test:data"), params.inUnits, fMinIndex));
 		dnn.Save(modelPath);
-		cout << "保存完了: " << modelPath << endl;
-	} else if (task == "pred") {
+	}
+	if (task == "all" || task == "pred") {
 		auto params = config.CreateParams();
 		auto modelPath = config.Get("model_in", "XNN.model");
 		auto outPath = config.Get("name_pred", "pred.txt");
 		auto data = LoadSVMLight(config.GetRequired("test:data"), params.inUnits, fMinIndex);
 		XNNModel dnn(modelPath);
+		dnn.SetLog(log);
 		ofstream(outPath) << dnn.Predict(move(data));
-	} else if (task == "dump") {
+	}
+	if (task == "all" || task == "dump") {
 		auto modelPath = config.Get("model_in", "XNN.model");
 		auto outPath = config.Get("name_dump", "dump.txt");
 		XNNModel dnn(modelPath);
+		dnn.SetLog(log);
 		ofstream(outPath) << dnn.Dump();
-	} else if (task == "fscore") {
+	}
+	if (task == "all" || task == "fscore") {
 		auto modelPath = config.Get("model_in", "XNN.model");
 		auto fmapPath = config.Get("fmap", "fmap.tsv");
 		auto outPath = config.Get("name_fscore", "fscore.txt");
 		XNNModel dnn(modelPath);
+		dnn.SetLog(log);
 		ofstream(outPath) << FScoreToString(dnn.GetFScore(), fmapPath, fMinIndex);
-	} else {
-		throw XNNException("taskの値が不正。task=" + task);
 	}
 	return 0;
 }
