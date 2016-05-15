@@ -1,16 +1,16 @@
 ネットワーク: 8:PReLU - (32:PReLU x 3) - 1
-検証: epoch=1 out[0] : train={MAE=7586689.1% RMSE=9574008.2%} test={MAE=7719802.2% RMSE=9654244.3%}
-検証: epoch=2 out[0] : train={MAE=5724900.8% RMSE=7680328.3%} test={MAE=6024912.1% RMSE=8065586.5%}
-検証: epoch=3 out[0] : train={MAE=5720086.2% RMSE=7664017.3%} test={MAE=5978966.3% RMSE=7981434.8%}
-検証: epoch=4 out[0] : train={MAE=5583213.4% RMSE=7611024.3%} test={MAE=5808717.2% RMSE=7899535.4%}
-検証: epoch=5 out[0] : train={MAE=5477090.4% RMSE=7338773.6%} test={MAE=5800815.0% RMSE=7858154.7%}
-検証: epoch=6 out[0] : train={MAE=5464616.0% RMSE=7462343.0%} test={MAE=5694083.2% RMSE=7827433.3%}
-検証: epoch=7 out[0] : train={MAE=5390467.2% RMSE=7318811.4%} test={MAE=5673824.3% RMSE=7819066.6%}
-検証: epoch=8 out[0] : train={MAE=5335309.5% RMSE=7285742.1%} test={MAE=5631412.3% RMSE=7785908.6%}
-検証: epoch=9 out[0] : train={MAE=5412228.9% RMSE=7413542.0%} test={MAE=5641061.7% RMSE=7795438.9%}
-検証: epoch=10 out[0] : train={MAE=5226471.8% RMSE=7315918.7%} test={MAE=5549627.6% RMSE=7820241.2%}
-検証: epoch=11 out[0] : train={MAE=5266986.4% RMSE=7186303.9%} test={MAE=5579062.6% RMSE=7792163.4%}
-検証: epoch=12 out[0] : train={MAE=5339187.3% RMSE=7204796.4%} test={MAE=5650828.9% RMSE=7801178.0%}
-学習完了: 10.716秒
-MAE=5631412.3% RMSE=7785908.6%
+検証: epoch=1 out[0] : train={MAE=7587009.8% RMSE=9574393.8%} test={MAE=7720107.4% RMSE=9654609.7%}
+検証: epoch=2 out[0] : train={MAE=5725040.9% RMSE=7680365.4%} test={MAE=6025013.7% RMSE=8065581.7%}
+検証: epoch=3 out[0] : train={MAE=5720202.2% RMSE=7664008.8%} test={MAE=5978793.8% RMSE=7981249.0%}
+検証: epoch=4 out[0] : train={MAE=5583862.5% RMSE=7611264.7%} test={MAE=5809052.8% RMSE=7899116.7%}
+検証: epoch=5 out[0] : train={MAE=5476283.6% RMSE=7338499.6%} test={MAE=5800432.7% RMSE=7858066.3%}
+検証: epoch=6 out[0] : train={MAE=5465098.7% RMSE=7462540.4%} test={MAE=5694379.9% RMSE=7827193.2%}
+検証: epoch=7 out[0] : train={MAE=5390015.2% RMSE=7318869.2%} test={MAE=5673744.8% RMSE=7819471.9%}
+検証: epoch=8 out[0] : train={MAE=5335036.5% RMSE=7285464.1%} test={MAE=5630979.3% RMSE=7785648.6%}
+検証: epoch=9 out[0] : train={MAE=5410734.2% RMSE=7413258.1%} test={MAE=5639120.0% RMSE=7794504.1%}
+検証: epoch=10 out[0] : train={MAE=5226071.4% RMSE=7315778.9%} test={MAE=5548952.0% RMSE=7819671.3%}
+検証: epoch=11 out[0] : train={MAE=5267056.5% RMSE=7185834.3%} test={MAE=5579123.8% RMSE=7791336.1%}
+検証: epoch=12 out[0] : train={MAE=5337539.3% RMSE=7204066.7%} test={MAE=5648813.8% RMSE=7799113.5%}
+学習完了: 11.62秒
+MAE=5630979.3% RMSE=7785648.6%
 検証完了: 0.0035ミリ秒/回

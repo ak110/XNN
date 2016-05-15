@@ -316,8 +316,6 @@ namespace XNN {
 				auto baseStep = static_cast<DerivedClass*>(this)->GetStep(i, g, lt);
 				auto step = baseStep * scale_;
 				auto newX = oldX + static_cast<typename remove_reference<decltype(oldX)>::type>(step);
-				if ((oldX < 0 && 0 < newX) || (newX < 0 && 0 < oldX))
-					newX = 0;
 				x[i] = newX;
 			}
 			return lt;

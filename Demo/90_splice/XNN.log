@@ -1,12 +1,12 @@
 scale_pos_weight = 0.934236
 ネットワーク: 60:PReLU - (32:PReLU x 3) - 1
-検証: epoch=1 out[0] : train={MAE= 7.4% RMSE=16.7%} test={MAE=12.5% RMSE=26.6%}
-検証: epoch=2 out[0] : train={MAE= 1.2% RMSE= 3.7%} test={MAE=11.9% RMSE=30.2%}
-検証: epoch=3 out[0] : train={MAE= 2.4% RMSE= 7.6%} test={MAE=11.4% RMSE=28.8%}
-検証: epoch=4 out[0] : train={MAE= 0.3% RMSE= 0.9%} test={MAE=10.9% RMSE=30.0%}
-検証: epoch=5 out[0] : train={MAE= 0.3% RMSE= 0.8%} test={MAE=10.9% RMSE=30.4%}
-学習完了: 5.035秒
-class[0]: 適合率=89.6% 再現率=91.6% F値=90.6% 選択率=49.1% 分布=48.0%
-class[1]: 適合率=92.1% 再現率=90.2% F値=91.1% 選択率=50.9% 分布=52.0%
-average:  適合率=90.9% 再現率=90.9% F値=90.9%
-検証完了: 0.00321839ミリ秒/回
+検証: epoch=1 out[0] : train={MAE= 7.7% RMSE=17.0%} test={MAE=12.7% RMSE=26.7%}
+検証: epoch=2 out[0] : train={MAE= 1.0% RMSE= 2.8%} test={MAE=11.6% RMSE=30.1%}
+検証: epoch=3 out[0] : train={MAE= 0.3% RMSE= 0.8%} test={MAE=11.2% RMSE=30.6%}
+検証: epoch=4 out[0] : train={MAE= 0.3% RMSE= 0.9%} test={MAE=11.2% RMSE=30.5%}
+検証: epoch=5 out[0] : train={MAE= 0.3% RMSE= 0.9%} test={MAE=11.0% RMSE=30.0%}
+学習完了: 5.421秒
+class[0]: 適合率=89.8% 再現率=91.6% F値=90.7% 選択率=48.9% 分布=48.0%
+class[1]: 適合率=92.1% 再現率=90.5% F値=91.3% 選択率=51.1% 分布=52.0%
+average:  適合率=91.0% 再現率=91.0% F値=91.0%
+検証完了: 0.00367816ミリ秒/回
