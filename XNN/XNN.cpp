@@ -65,16 +65,6 @@ namespace XNN {
 #pragma omp atomic
 			(*this)[p.first] += p.second; // resizeは事前にしてある前提とする。
 		}
-		double GetL1Norm() const {
-			double s = 0.0;
-			for (const auto& p : *this) s += abs(p.second);
-			return s;
-		}
-		double GetL2Norm() const {
-			double s = 0.0;
-			for (const auto& p : *this) s += p.second * p.second;
-			return sqrt(s);
-		}
 		struct const_iterator {
 			const DenseVector<ValueType>* parent;
 			size_t i;
@@ -407,7 +397,13 @@ namespace XNN {
 		virtual unique_ptr<ILayerTrainer> CreateTrainer(const XNNParams& params, mt19937_64& rnd) {
 			return unique_ptr<ILayerTrainer>(new NullLayerTrainer());
 		}
-		// 順伝搬
+		// 順伝搬(学習時用)
+		virtual void Forward(const vector<float> in[], vector<float> out[], int batchSize, ILayerTrainer* trainer) const {
+#pragma omp parallel for
+			for (int i = 0; i < batchSize; i++)
+				Forward(in[i], out[i], trainer);
+		}
+		// 順伝搬(直接呼ぶのは評価時のみで、その場合trainer == nullptr。ただし学習時用はデフォルトではこれを呼ぶ。)
 		virtual void Forward(const vector<float>& in, vector<float>& out, ILayerTrainer* trainer) const {
 			out = in;
 		}
@@ -1122,7 +1118,8 @@ namespace XNN {
 		}
 		// ミニバッチによる更新
 		RegressionScore PartialFit(const std::vector<XNNData>& trainData, size_t startIndex, size_t count) {
-#pragma omp parallel for
+			// 勾配をクリア
+#pragma omp parallel for schedule(dynamic)
 			for (int i = 0; i < (int)trainers.size(); i++)
 				trainers[i]->Clear();
 
@@ -1133,51 +1130,51 @@ namespace XNN {
 				params.scalePosWeight * 2 / (params.scalePosWeight + 1),
 			} };
 
-			RegressionScore score;
-			atomic<size_t> miniBatchIndex(0);
-#pragma omp parallel
-			{
-				vector<vector<float>> out(layers.size() + 1);
+			// 順伝搬
+			vector<vector<vector<float>>> out(layers.size() + 1); // layer×miniBatch×feats
+			for (auto& b : out)
+				b.resize(count);
+			for (size_t mb = 0; mb < count; mb++)
+				out[0][mb] = trainData[startIndex + mb].in;
+			for (size_t i = 0; i < layers.size(); i++)
+				layers[i]->Forward(out[i].data(), out[i + 1].data(), (int)count, trainers[i].get());
+
+			// 逆伝搬
+			struct ThreadLocal {
 				vector<float> errorIn, errorOut;
-				for (auto& o : out)
-					o.reserve(params.hiddenUnits);
-				errorIn.reserve(params.hiddenUnits);
-				errorOut.reserve(params.hiddenUnits);
-
-				while (true) {
-					auto index = miniBatchIndex++;
-					if (count <= index)
-						break;
-					auto& data = trainData[startIndex + index];
-
-					out[0] = data.in;
-					// 順伝搬
-					for (size_t i = 0; i < layers.size(); i++)
-						layers[i]->Forward(out[i], out[i + 1], trainers[i].get());
-					// エラーを算出
-					// ロジスティック回帰／線形二乗誤差：教師 - 予測
-					errorIn = data.out;
-					TransformOutput(errorIn);
+				ThreadLocal(int hiddenUnits) : errorIn(hiddenUnits), errorOut(hiddenUnits) {}
+			};
+			vector<ThreadLocal> locals(omp_get_max_threads(), ThreadLocal(params.hiddenUnits));
+			RegressionScore score;
+#pragma omp parallel for
+			for (int mb = 0; mb < (int)count; mb++) {
+				auto& data = trainData[startIndex + mb];
+				auto& local = locals[omp_get_thread_num()];
+				auto& errorIn = local.errorIn;
+				auto& errorOut = local.errorOut;
+				// エラーを算出
+				// ロジスティック回帰／線形二乗誤差：教師 - 予測
+				errorIn = data.out;
+				TransformOutput(errorIn);
+				for (size_t i = 0; i < errorIn.size(); i++)
+					errorIn[i] = errorIn[i] - out.back()[mb][i];
+				// 集計
+				score.Add(accumulate(errorIn.begin(), errorIn.end(), 0.0) / errorIn.size());
+				// scale_pos_weight
+				if (params.objective == XNNObjective::BinaryLogistic) {
 					for (size_t i = 0; i < errorIn.size(); i++)
-						errorIn[i] = errorIn[i] - out.back()[i];
-					// 集計
-					score.Add(accumulate(errorIn.begin(), errorIn.end(), 0.0) / errorIn.size());
-					// scale_pos_weight
-					if (params.objective == XNNObjective::BinaryLogistic) {
-						for (size_t i = 0; i < errorIn.size(); i++)
-							errorIn[i] *= binaryScales[(int)round(data.out[i])];
-					}
-					// 逆伝搬
-					for (int i = (int)layers.size() - 1; 0 <= i; i--) {
-						layers[i]->Backward(*trainers[i],
-							out[i], out[i + 1],
-							errorOut, errorIn);
-						swap(errorIn, errorOut);
-					}
+						errorIn[i] *= binaryScales[(int)round(data.out[i])];
+				}
+				// 逆伝搬
+				for (int i = (int)layers.size() - 1; 0 <= i; i--) {
+					layers[i]->Backward(*trainers[i],
+						out[i][mb], out[i + 1][mb], errorOut, errorIn);
+					swap(errorIn, errorOut);
 				}
 			}
 
-#pragma omp parallel for
+			// 重みを更新
+#pragma omp parallel for schedule(dynamic)
 			for (int i = 0; i < (int)trainers.size(); i++)
 				trainers[i]->Update();
 
