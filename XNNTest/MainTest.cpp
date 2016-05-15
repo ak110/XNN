@@ -55,6 +55,6 @@ TEST(Main, Heavy_AndOrXor) {
 	// Dump/Save/Loadもついでにテスト
 	auto d = dnn.Dump();
 	dnn.Save("test.model.tmp");
-	dnn.Load("test.model.tmp");
-	EXPECT_EQ(d, dnn.Dump());
+	XNNModel dnn2("test.model.tmp");
+	EXPECT_EQ(d, dnn2.Dump());
 }
