@@ -1,5 +1,5 @@
 #!/bin/sh
 
-PATH=../../XNN:$(PATH)
+PATH=../../XNN:$PATH
 
 XNN
