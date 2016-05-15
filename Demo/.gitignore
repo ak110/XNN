@@ -1,10 +1,11 @@
-data.train
-data.test
+90_*/*.train
+90_*/*.test
+90_*/pred.txt
+90_*/dump.txt
+90_*/fscore.txt
+90_*/history.csv
 mnist
 mnist.t
 
-!01_BinaryClassification1/data.*
-!02_BinaryClassification2/data.*
-
 XNN.model
-pred.txt
+

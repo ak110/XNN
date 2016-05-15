@@ -1,0 +1,2 @@
+epoch,train mae,train rmse,test mae,test rmse
+1,0.000151406,0.000312551,0.000151406,0.000312551
