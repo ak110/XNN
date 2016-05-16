@@ -51,7 +51,7 @@ TEST(XNN, BatchNormalization) {
 	EXPECT_NEAR(0.0f, out[1][0], 0.1f);
 	EXPECT_NEAR(1.2f, out[2][0], 0.1f);
 	vector<float> errorIn{1.3f}, errorOut;
-	layer.Backward(*trainer, in[0], out[0], errorOut, errorIn);
+	layer.Backward(*trainer, 0, in[0], out[0], errorOut, errorIn);
 	EXPECT_NEAR(0.3f, errorOut[0], 0.1f);
 }
 

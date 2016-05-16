@@ -412,7 +412,7 @@ namespace XNN {
 		}
 		// 逆伝搬
 		virtual void Backward(
-			ILayerTrainer& trainer,
+			ILayerTrainer& trainer, int mbIndex,
 			const vector<float>& in, const vector<float>& out,
 			vector<float>& errorOut, const vector<float>& errorIn) const {
 			errorOut = errorIn;
@@ -524,7 +524,7 @@ namespace XNN {
 			out += bias;
 		}
 		// 逆伝搬
-		void Backward(ILayerTrainer& trainer_,
+		void Backward(ILayerTrainer& trainer_, int mbIndex,
 			const vector<float>& in, const vector<float>& out,
 			vector<float>& errorOut, const vector<float>& errorIn) const override {
 			errorOut = errorIn;
@@ -618,7 +618,7 @@ namespace XNN {
 			out += biases;
 		}
 		// 逆伝搬
-		void Backward(ILayerTrainer& trainer_,
+		void Backward(ILayerTrainer& trainer_, int mbIndex,
 			const vector<float>& in, const vector<float>& out,
 			vector<float>& errorOut, const vector<float>& errorIn) const override {
 			assert(in.size() == inUnits);
@@ -693,8 +693,7 @@ namespace XNN {
 			}
 		}
 		// 逆伝搬
-		void Backward(
-			ILayerTrainer& trainer,
+		void Backward(ILayerTrainer& trainer, int mbIndex,
 			const vector<float>& in, const vector<float>& out,
 			vector<float>& errorOut, const vector<float>& errorIn) const override {
 			errorOut = errorIn;
@@ -771,7 +770,7 @@ namespace XNN {
 					out[i] *= weights[i];
 		}
 		// 逆伝搬
-		void Backward(ILayerTrainer& trainer_,
+		void Backward(ILayerTrainer& trainer_, int mbIndex,
 			const vector<float>& in, const vector<float>& out,
 			vector<float>& errorOut, const vector<float>& errorIn) const override {
 			assert(in.size() == inUnits);
@@ -895,7 +894,7 @@ namespace XNN {
 				}
 			trainer.std /= batchSize;
 			for (size_t i = 0; i < inUnits; i++)
-				trainer.std[i] = sqrt(trainer.std[i] + 1e-5f);
+				trainer.std[i] = sqrt(trainer.std[i] + 1e-8f);
 			// 評価用のweight/biasの算出
 			// gamma * (元の値 - mean) / std + beta
 			// = {gamma / std} * (元の値 - mean) + beta
@@ -916,7 +915,7 @@ namespace XNN {
 			out += biases;
 		}
 		// 逆伝搬
-		void Backward(ILayerTrainer& trainer_,
+		void Backward(ILayerTrainer& trainer_, int mbIndex,
 			const vector<float>& in, const vector<float>& out,
 			vector<float>& errorOut, const vector<float>& errorIn) const override {
 			assert(in.size() == inUnits);
@@ -957,64 +956,57 @@ namespace XNN {
 		void Initialize(const vector<XNNData>&, mt19937_64&, double inputNorm, double& outputNorm) override {
 			outputNorm = inputNorm / 2;
 		}
-		struct Trainer : public ILayerTrainer {
-			vector<mt19937_64> rnds;
+		struct Trainer : public NullLayerTrainer {
+			mt19937_64 rnd;
 			vector<unique_ptr<bool[]>> keepFlags;
-			Trainer(mt19937_64& rnd, uint64_t inUnits) {
-				auto threadCount = omp_get_max_threads();
-				array<mt19937_64::result_type, 16> seed;
-				for (int i = 0; i < threadCount; i++) {
-					generate(seed.begin(), seed.end(), ref(rnd));
-					seed_seq seq(seed.begin(), seed.end());
-					rnds.emplace_back(mt19937_64(seq));
-					keepFlags.emplace_back(new bool[inUnits]);
-				}
-			}
-			void Clear() override {}
-			void Update() override {}
+			Trainer(mt19937_64& rnd, uint64_t inUnits) : rnd(rnd()) {}
 		};
 		// 学習するクラスを作る
 		unique_ptr<ILayerTrainer> CreateTrainer(const XNNParams& params, mt19937_64& rnd) {
 			return unique_ptr<ILayerTrainer>(new Trainer(rnd, inUnits));
 		}
-		// 順伝搬
-		void Forward(const vector<float>& in, vector<float>& out, ILayerTrainer* trainer_) const override {
-			assert(in.size() == inUnits);
-			out = in;
-			if (trainer_ != nullptr) {
-				// ランダムにdropする
-				auto tid = omp_get_thread_num();
-				auto& trainer = (Trainer&)*trainer_;
-				auto rnd = trainer.rnds[tid];
-				auto keepFlags = trainer.keepFlags[tid].get();
-
+		// 順伝搬(学習時用)
+		void Forward(const vector<float> in[], vector<float> out[], int batchSize, ILayerTrainer* trainer_) override {
+			auto& trainer = (Trainer&)*trainer_;
+			trainer.keepFlags.resize(batchSize);
+			for (int mb = 0; mb < batchSize; mb++) {
+				if (!trainer.keepFlags[mb])
+					trainer.keepFlags[mb].reset(new bool[inUnits]);
+				auto keepFlags = trainer.keepFlags[mb].get();
 				auto keepCount = (size_t)round(inUnits * keepProb);
 				for (size_t i = 0; i < keepCount; i++)
 					keepFlags[i] = true;
 				for (size_t i = keepCount; i < inUnits; i++)
 					keepFlags[i] = false;
-				shuffle(keepFlags, keepFlags + inUnits, rnd);
+				shuffle(keepFlags, keepFlags + inUnits, trainer.rnd);
+			}
 
+#pragma omp parallel for
+			for (int mb = 0; mb < batchSize; mb++) {
+				out[mb] = in[mb];
 				for (size_t i = 0; i < inUnits; i++)
-					if (keepFlags[i])
-						out[i] /= keepProb; // keep
+					if (trainer.keepFlags[mb][i])
+						out[mb][i] /= keepProb; // keep
 					else
-						out[i] = 0; // drop
+						out[mb][i] = 0; // drop
 			}
 		}
+		// 順伝搬
+		void Forward(const vector<float>& in, vector<float>& out, ILayerTrainer* trainer) const override {
+			assert(in.size() == inUnits);
+			out = in;
+		}
 		// 逆伝搬
-		void Backward(ILayerTrainer& trainer_,
+		void Backward(ILayerTrainer& trainer_, int mbIndex,
 			const vector<float>& in, const vector<float>& out,
 			vector<float>& errorOut, const vector<float>& errorIn) const override {
 			assert(in.size() == inUnits);
 			assert(out.size() == inUnits);
 			assert(errorIn.size() == inUnits);
-			auto tid = omp_get_thread_num();
 			auto& trainer = (Trainer&)trainer_;
-			auto keepFlags = trainer.keepFlags[tid].get();
 			errorOut = errorIn;
 			for (size_t i = 0; i < inUnits; i++) {
-				if (keepFlags[i])
+				if (trainer.keepFlags[mbIndex][i])
 					errorOut[i] /= keepProb; // keep
 				else
 					errorOut[i] = 0; // drop
@@ -1383,7 +1375,7 @@ namespace XNN {
 				}
 				// 逆伝搬
 				for (int i = (int)layers.size() - 1; 0 <= i; i--) {
-					layers[i]->Backward(*trainers[i],
+					layers[i]->Backward(*trainers[i], mb,
 						out[i][mb], out[i + 1][mb], errorOut, errorIn);
 					swap(errorIn, errorOut);
 				}
