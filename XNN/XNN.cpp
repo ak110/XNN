@@ -401,7 +401,7 @@ namespace XNN {
 			return unique_ptr<ILayerTrainer>(new NullLayerTrainer());
 		}
 		// 順伝搬(学習時用)
-		virtual void Forward(const vector<float> in[], vector<float> out[], int batchSize, ILayerTrainer* trainer) const {
+		virtual void Forward(const vector<float> in[], vector<float> out[], int batchSize, ILayerTrainer* trainer) {
 #pragma omp parallel for
 			for (int i = 0; i < batchSize; i++)
 				Forward(in[i], out[i], trainer);
@@ -721,8 +721,8 @@ namespace XNN {
 			assert(in.size() == inUnits);
 			assert(out.size() == inUnits);
 			assert(errorIn.size() == inUnits);
-			errorOut = errorIn;
 			auto& trainer = (Trainer&)trainer_;
+			errorOut = errorIn;
 			for (size_t i = 0; i < inUnits; i++) {
 				if (in[i] < 0) {
 					// 誤差の伝播
@@ -733,6 +733,153 @@ namespace XNN {
 			}
 		}
 	};
+	// BatchNormalization
+	struct BatchNormalizationLayer : public ILayer {
+		const uint64_t inUnits;
+		vector<float> weights;
+		vector<float> biases;
+		BatchNormalizationLayer(uint64_t inUnits) : inUnits(inUnits), weights(inUnits, 1.0f), biases(inUnits, 0.0f) {}
+		// モデルの読み込み
+		void Load(istream& s) override {
+			s.read((char*)&inUnits, sizeof inUnits);
+			weights.resize(inUnits);
+			biases.resize(inUnits);
+			s.read((char*)&weights[0], weights.size() * sizeof weights[0]);
+			s.read((char*)&biases[0], biases.size() * sizeof biases[0]);
+		}
+		// モデルの保存
+		void Save(ostream& s) const override {
+			s.write((const char*)&inUnits, sizeof inUnits);
+			s.write((const char*)&weights[0], weights.size() * sizeof weights[0]);
+			s.write((const char*)&biases[0], biases.size() * sizeof biases[0]);
+		}
+		// モデルの文字列化
+		void Dump(Dumper& d) const override {
+			d.AddLayer("BatchNormalization");
+			d.AddParam("weights", weights);
+			d.AddParam("biases", biases);
+		}
+		// 学習用に初期化
+		void Initialize(const vector<XNNData>&, mt19937_64&, double inputNorm, double& outputNorm) override {
+			outputNorm = inputNorm;
+		}
+		// 学習するクラス
+		struct Trainer : ILayerTrainer {
+			BatchNormalizationLayer& owner;
+			AdamOptimizer optimizerW;
+			AdamOptimizer optimizerB;
+			DenseVector<> gradW;
+			DenseVector<> gradB;
+			vector<float> mean, std, gamma, beta, emaMean, emaStd;
+			int batchSize;
+			Trainer(BatchNormalizationLayer& owner) :
+				owner(owner),
+				optimizerW(owner.inUnits, 1),
+				optimizerB(owner.inUnits, 1),
+				gradW(owner.inUnits),
+				gradB(owner.inUnits),
+				mean(owner.inUnits),
+				std(owner.inUnits),
+				gamma(owner.inUnits, 1.0f),
+				beta(owner.inUnits, 0.0f),
+				emaMean(owner.inUnits, 0.0f),
+				emaStd(owner.inUnits, 1.0f) {
+			}
+			void Clear() override {
+				gradW.Clear();
+				gradB.Clear();
+			}
+			void Update() override {
+				optimizerW.Update(gamma, gradW);
+				optimizerB.Update(beta, gradB);
+				// 最終結果のために平均と標準偏差の指数移動平均を算出
+				const float momentum = 0.9f;
+				for (size_t i = 0; i < owner.inUnits; i++) {
+					emaMean[i] = momentum * emaMean[i] + (1 - momentum) * mean[i];
+					emaStd[i] = momentum * emaStd[i] + (1 - momentum) * std[i];
+				}
+				// 評価用のweight/biasの算出
+				// gamma * (元の値 - mean) / std + beta
+				// = {gamma / std} * (元の値 - mean) + beta
+				// = {gamma / std} * 元の値 + {gamma / std} * (- mean) + beta
+				// = {gamma / std} * 元の値 + {bias - {gamma / std} * mean}
+				for (size_t i = 0; i < owner.inUnits; i++) {
+					owner.weights[i] = gamma[i] / emaStd[i];
+					owner.biases[i] = beta[i] - owner.weights[i] * emaMean[i];
+				}
+			}
+		};
+		// 学習するクラスを作る
+		unique_ptr<ILayerTrainer> CreateTrainer(const XNNParams& params, mt19937_64& rnd) override {
+			return unique_ptr<ILayerTrainer>(new Trainer(*this));
+		}
+		// 順伝搬(学習時用)
+		void Forward(const vector<float> in[], vector<float> out[], int batchSize, ILayerTrainer* trainer_) override {
+			auto& trainer = (Trainer&)*trainer_;
+			trainer.batchSize = batchSize;
+			// 平均
+			fill_n(trainer.mean.begin(), inUnits, 0.0f);
+			for (size_t mb = 0; mb < batchSize; mb++)
+				for (size_t i = 0; i < inUnits; i++)
+					trainer.mean[i] += in[mb][i];
+			trainer.mean /= batchSize;
+			// 標準偏差
+			fill_n(trainer.std.begin(), inUnits, 0.0f);
+			for (size_t mb = 0; mb < batchSize; mb++)
+				for (size_t i = 0; i < inUnits; i++) {
+					auto d = in[mb][i] - trainer.mean[i];
+					trainer.std[i] += d * d;
+				}
+			trainer.std /= batchSize;
+			for (size_t i = 0; i < inUnits; i++)
+				trainer.std[i] = sqrt(trainer.std[i] + 1e-5f);
+			// 評価用のweight/biasの算出
+			// gamma * (元の値 - mean) / std + beta
+			// = {gamma / std} * (元の値 - mean) + beta
+			// = {gamma / std} * 元の値 + {gamma / std} * (- mean) + beta
+			// = {gamma / std} * 元の値 + {bias - {gamma / std} * mean}
+			for (size_t i = 0; i < inUnits; i++) {
+				weights[i] = trainer.gamma[i] / trainer.std[i];
+				biases[i] = trainer.beta[i] - weights[i] * trainer.mean[i];
+			}
+			// 順伝搬
+			ILayer::Forward(in, out, batchSize, trainer_);
+		}
+		// 順伝搬
+		void Forward(const vector<float>& in, vector<float>& out, ILayerTrainer* trainer) const override {
+			assert(in.size() == inUnits);
+			out = in;
+			out *= weights;
+			out += biases;
+		}
+		// 逆伝搬
+		void Backward(ILayerTrainer& trainer_,
+			const vector<float>& in, const vector<float>& out,
+			vector<float>& errorOut, const vector<float>& errorIn) const override {
+			assert(in.size() == inUnits);
+			assert(out.size() == inUnits);
+			assert(errorIn.size() == inUnits);
+			auto& trainer = (Trainer&)trainer_;
+			errorOut.clear();
+			errorOut.resize(inUnits);
+			for (size_t i = 0; i < inUnits; i++) {
+				// 誤差の伝播
+				auto gx = errorIn[i] * trainer.gamma[i];
+				auto gs = gx * (in[i] - trainer.mean[i]) * (-0.5f) * pow(trainer.std[i], -3);
+				auto gm = gx * (-1) / trainer.std[i];
+				errorOut[i] =
+					gx / trainer.std[i] +
+					gs * 2 * (in[i] - trainer.mean[i]) / trainer.batchSize +
+					gm / trainer.batchSize;
+				// wの勾配
+				auto hx = (in[i] - trainer.mean[i]) / trainer.std[i];
+				trainer.gradW += make_pair(i, errorIn[i] * hx);
+				// bの勾配
+				trainer.gradB += make_pair(i, errorIn[i]);
+			}
+		}
+	};
+	// Dropout
 	struct DropoutLayer : public ILayer {
 		const uint64_t inUnits;
 		const float keepProb;
@@ -902,6 +1049,8 @@ namespace XNN {
 					layers.emplace_back(new ActivationLayer<XNNActivation::PReLU>(outUnits));
 				else
 					throw XNNException("activationが不正: " + ToString(params.activation));
+				if (params.batchNormalization != 0)
+					layers.emplace_back(new BatchNormalizationLayer(outUnits));
 				if (params.dropoutKeepProb < 1.0f) {
 					if (params.dropoutKeepProb < 0.0f)
 						throw XNNException("dropout_keep_probが不正: " + to_string(params.dropoutKeepProb));

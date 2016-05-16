@@ -41,6 +41,22 @@ TEST(XNN, ActivationLayer) {
 	EXPECT_EQ(+3.0f, activation<XNNActivation::Identity>(+3));
 }
 
+TEST(XNN, BatchNormalization) {
+	XNNParams params(1);
+	mt19937_64 mt;
+	BatchNormalizationLayer layer(1);
+	auto trainer = layer.CreateTrainer(params, mt);
+	vector<float> in[3] = { { 3 }, { 4 }, { 5 } };
+	vector<float> out[3];
+	layer.Forward(in, out, 3, trainer.get());
+	EXPECT_NEAR(-1.2f, out[0][0], 0.1f);
+	EXPECT_NEAR(0.0f, out[1][0], 0.1f);
+	EXPECT_NEAR(1.2f, out[2][0], 0.1f);
+	vector<float> errorIn{1.3f}, errorOut;
+	layer.Backward(*trainer, in[0], out[0], errorOut, errorIn);
+	EXPECT_NEAR(0.3f, errorOut[0], 0.1f);
+}
+
 TEST(XNN, SVNLight) {
 	stringstream ss1, ss2;
 	ss1 << "1.23 1:5.6 3:8" << endl;
