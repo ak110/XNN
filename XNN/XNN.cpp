@@ -349,6 +349,9 @@ namespace XNN {
 	// 各層の内容を文字列化するためのクラス。今のところ書式はだいぶ適当。
 	struct Dumper {
 		stringstream ss;
+		Dumper() {
+			ss << setprecision(3);
+		}
 		void AddLayer(const string& name) {
 			ss << "layer: " << name << endl;
 		}

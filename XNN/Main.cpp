@@ -2,6 +2,7 @@
 #include "XNN.h"
 #include <boost/algorithm/string.hpp>
 #include <iostream>
+#include <iomanip>
 #include <fstream>
 #include <sstream>
 #include <unordered_map>
@@ -90,6 +91,7 @@ string FScoreToString(const vector<float>& fscore, const string& fmapPath, int f
 	});
 	// 文字列化
 	stringstream ss;
+	ss << setprecision(3);
 	for (const auto& p : data)
 		ss << p.first << "\t" << p.second << endl;
 	return ss.str();
