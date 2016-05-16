@@ -58,11 +58,13 @@ optionsは「パラメータ名=値」形式でconfigの値を上書きする形
 * scale_input [既定値=true]
   - true  -- 入力をスケーリングする。(max(1,絶対値の最大値)で割るだけ。)
   - false -- 入力をスケーリングしない。
+* batch_normalization [既定値=true]
+  - Batch Normalizationを使用するか否か。
 * l1 [既定値=0.0]
   - L1正則化項の重み。
 * l2 [既定値=0.01]
   - L2正則化項の重み。既定値はちょっと強めかも。
-* dropout_keep_prob [既定値=1.0]
+* dropout_keep_prob [既定値=0.5]
   - Dropoutする場合に、残す割合を(0, 1]で指定する。1ならDropoutしない。0.75なら3/4は残す。
 * scale_pos_weight [既定値=-1.0]
   - 2クラス分類のときの正例(ラベルが1のデータ)の重み。1なら負例と等倍。
@@ -74,9 +76,9 @@ optionsは「パラメータ名=値」形式でconfigの値を上書きする形
 パラメーター(コマンドライン関連)
 --------------------------------
 
-* data
+* data [既定値=data.train]
   - 訓練データ。
-* test:data
+* test:data [既定値=data.test]
   - 検証データ。学習時の終了判定にも使用する。
 * task [既定値=all]
   - all   -- 以下の全てを順番に実施する。

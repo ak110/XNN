@@ -43,6 +43,7 @@ struct Config {
 		params.objective = XNNObjectiveFromString(Get("objective", ToString(params.objective)));
 		params.activation = XNNActivationFromString(Get("activation", ToString(params.activation)));
 		params.scaleInput = GetBool("scale_input", true) ? 1 : 0;
+		params.batchNormalization = GetBool("batch_normalization", true) ? 1 : 0;
 		params.l1 = stof(Get("l1", to_string(params.l1)));
 		params.l2 = stof(Get("l2", to_string(params.l2)));
 		params.dropoutKeepProb = stof(Get("dropout_keep_prob", to_string(params.dropoutKeepProb)));
@@ -155,15 +156,15 @@ int Process(int argc, char* argv[]) {
 		dnn.SetLog(log);
 		dnn.SetHistory(history);
 		dnn.Train(
-			LoadSVMLight(config.GetRequired("data"), params.inUnits, fMinIndex),
-			LoadSVMLight(config.GetRequired("test:data"), params.inUnits, fMinIndex));
+			LoadSVMLight(config.Get("data", "data.train"), params.inUnits, fMinIndex),
+			LoadSVMLight(config.Get("test:data", "data.test"), params.inUnits, fMinIndex));
 		dnn.Save(modelPath);
 	}
 	if (task == "all" || task == "pred") {
 		auto params = config.CreateParams();
 		auto modelPath = config.Get("model_in", "XNN.model");
 		auto outPath = config.Get("name_pred", "pred.txt");
-		auto data = LoadSVMLight(config.GetRequired("test:data"), params.inUnits, fMinIndex);
+		auto data = LoadSVMLight(config.Get("test:data", "data.test"), params.inUnits, fMinIndex);
 		XNNModel dnn(modelPath);
 		dnn.SetLog(log);
 		ofstream(outPath) << dnn.Predict(move(data));
