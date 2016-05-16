@@ -471,12 +471,72 @@ namespace XNN {
 		}
 	};
 
+	// 出力をスケーリングする層。
+	// 線形回帰で極端に大きい出力とかを出すのが大変なので、
+	// 訓練データから平均・標準偏差を算出しておいてスケーリングしてしまう。
+	struct OutputScalingLayer : public ILayer {
+		uint64_t inUnits;
+		vector<float> weight, bias;
+		OutputScalingLayer(uint64_t inUnits) : inUnits(inUnits), weight(inUnits, 1), bias(inUnits, 0) {}
+		// モデルの読み込み
+		void Load(istream& s) override {
+			s.read((char*)&inUnits, sizeof inUnits);
+			weight.resize(inUnits);
+			bias.resize(inUnits);
+			s.read((char*)&weight[0], weight.size() * sizeof weight[0]);
+			s.read((char*)&bias[0], bias.size() * sizeof bias[0]);
+		}
+		// モデルの保存
+		void Save(ostream& s) const override {
+			s.write((const char*)&inUnits, sizeof inUnits);
+			s.write((const char*)&weight[0], weight.size() * sizeof weight[0]);
+			s.write((const char*)&bias[0], bias.size() * sizeof bias[0]);
+		}
+		// モデルの文字列化
+		void Dump(Dumper & d) const override {
+			d.AddLayer("OutputScaling");
+			d.AddParam("weight", weight);
+			d.AddParam("bias", bias);
+		}
+		// 学習用に初期化
+		void Initialize(const vector<XNNData>& data, mt19937_64 & rnd, double inputNorm, double & outputNorm) override {
+			// 出力の平均と標準偏差を算出する
+			// weight = 標準偏差 * 3
+			// bias = 平均
+			// とする。
+			fill(weight.begin(), weight.end(), 0.0f);
+			fill(bias.begin(), bias.end(), 0.0f);
+			for (auto& d : data)
+				bias += d.out;
+			bias /= data.size(); // 平均
+			for (auto& d : data)
+				for (size_t i = 0; i < d.out.size(); i++)
+					weight[i] = (d.out[i] - bias[i]) * (d.out[i] - bias[i]);
+			for (auto& s : weight)
+				s = sqrt(s / data.size() + 1e-5f) * 3; // 標準偏差 * 3
+			// この層が最後の前提なので適当
+			outputNorm = inputNorm;
+		}
+		// 順伝搬
+		void Forward(const vector<float>& in, vector<float>& out, ILayerTrainer* trainer) const override {
+			out = in;
+			out *= weight;
+			out += bias;
+		}
+		// 逆伝搬
+		void Backward(ILayerTrainer& trainer_,
+			const vector<float>& in, const vector<float>& out,
+			vector<float>& errorOut, const vector<float>& errorIn) const override {
+			errorOut = errorIn;
+			errorOut /= weight;
+		}
+	};
+
 	// 全層結合層
 	struct FullyConnectedLayer : public ILayer {
 		uint64_t inUnits, outUnits;
 		double inputNorm;
-		vector<float> weights;
-		vector<float> biases;
+		vector<float> weights, biases;
 		FullyConnectedLayer(uint64_t inUnits, uint64_t outUnits) : inUnits(inUnits), outUnits(outUnits) {
 			weights.resize(inUnits * outUnits);
 			biases.resize(outUnits);
@@ -605,7 +665,6 @@ namespace XNN {
 		void Initialize(const vector<XNNData>& data, mt19937_64& rnd, double inputNorm, double& outputNorm) override {
 			switch (Act) {
 			case XNNActivation::ReLU: outputNorm = inputNorm / 2; break;
-			case XNNActivation::Identity: outputNorm = inputNorm; break;
 			case XNNActivation::Sigmoid: outputNorm = inputNorm / 2; break;
 			case XNNActivation::Softmax: outputNorm = 1.0; break;
 			}
@@ -621,8 +680,6 @@ namespace XNN {
 			case XNNActivation::Sigmoid:
 				for (auto& x : out)
 					x = 1.0f / (1.0f + exp(-x));
-				break;
-			case XNNActivation::Identity:
 				break;
 			case XNNActivation::Softmax:
 				{
@@ -649,7 +706,6 @@ namespace XNN {
 						errorOut[o] = 0.0f;
 				break;
 			case XNNActivation::Sigmoid:
-			case XNNActivation::Identity:
 			case XNNActivation::Softmax:
 				// 中間層の場合はここで微分する必要があるが、
 				// 現状は出力層限定なのでそのまま伝搬させる。
@@ -761,7 +817,7 @@ namespace XNN {
 		}
 		// 学習用に初期化
 		void Initialize(const vector<XNNData>&, mt19937_64&, double inputNorm, double& outputNorm) override {
-			outputNorm = inputNorm;
+			outputNorm = (double)inUnits;
 		}
 		// 学習するクラス
 		struct Trainer : ILayerTrainer {
@@ -772,10 +828,11 @@ namespace XNN {
 			DenseVector<> gradB;
 			vector<float> mean, std, gamma, beta, emaMean, emaStd;
 			int batchSize;
+			bool firstUpdate = true;
 			Trainer(BatchNormalizationLayer& owner) :
 				owner(owner),
-				optimizerW(owner.inUnits, 1),
-				optimizerB(owner.inUnits, 1),
+				optimizerW(owner.weights.size(), 1),
+				optimizerB(owner.biases.size(), 1),
 				gradW(owner.inUnits),
 				gradB(owner.inUnits),
 				mean(owner.inUnits),
@@ -793,10 +850,16 @@ namespace XNN {
 				optimizerW.Update(gamma, gradW);
 				optimizerB.Update(beta, gradB);
 				// 最終結果のために平均と標準偏差の指数移動平均を算出
-				const float momentum = 0.9f;
-				for (size_t i = 0; i < owner.inUnits; i++) {
-					emaMean[i] = momentum * emaMean[i] + (1 - momentum) * mean[i];
-					emaStd[i] = momentum * emaStd[i] + (1 - momentum) * std[i];
+				if (firstUpdate) {
+					firstUpdate = false;
+					emaMean = mean;
+					emaStd = std;
+				} else {
+					const float momentum = 0.9f;
+					for (size_t i = 0; i < owner.inUnits; i++) {
+						emaMean[i] = momentum * emaMean[i] + (1 - momentum) * mean[i];
+						emaStd[i] = momentum * emaStd[i] + (1 - momentum) * std[i];
+					}
 				}
 				// 評価用のweight/biasの算出
 				// gamma * (元の値 - mean) / std + beta
@@ -864,17 +927,18 @@ namespace XNN {
 			errorOut.resize(inUnits);
 			for (size_t i = 0; i < inUnits; i++) {
 				// 誤差の伝播
+				auto x = in[i] - trainer.mean[i];
 				auto gx = errorIn[i] * trainer.gamma[i];
-				auto gs = gx * (in[i] - trainer.mean[i]) * (-0.5f) * pow(trainer.std[i], -3);
+				auto gs = gx * x * (-0.5f) * pow(trainer.std[i], -3);
 				auto gm = gx * (-1) / trainer.std[i];
 				errorOut[i] =
 					gx / trainer.std[i] +
-					gs * 2 * (in[i] - trainer.mean[i]) / trainer.batchSize +
+					gs * 2 * x / trainer.batchSize +
 					gm / trainer.batchSize;
-				// wの勾配
-				auto hx = (in[i] - trainer.mean[i]) / trainer.std[i];
+				// gammaの勾配
+				auto hx = x / trainer.std[i];
 				trainer.gradW += make_pair(i, errorIn[i] * hx);
-				// bの勾配
+				// betaの勾配
 				trainer.gradB += make_pair(i, errorIn[i]);
 			}
 		}
@@ -1065,7 +1129,7 @@ namespace XNN {
 				if (params.objective == XNNObjective::MultiSoftmax)
 					layers.emplace_back(new ActivationLayer<XNNActivation::Softmax>(outUnits));
 				else if (params.objective == XNNObjective::RegLinear)
-					layers.emplace_back(new ActivationLayer<XNNActivation::Identity>(outUnits));
+					layers.emplace_back(new OutputScalingLayer(outUnits));
 				else
 					layers.emplace_back(new ActivationLayer<XNNActivation::Sigmoid>(outUnits));
 			}
@@ -1492,10 +1556,9 @@ namespace XNN {
 				"binary:logistic",
 				"multi:softmax",
 			} };
-		array<const char*, 5> activations = { {
+		array<const char*, 4> activations = { {
 				"ReLU",
 				"PReLU",
-				"Identity",
 				"Sigmoid",
 				"Softmax",
 			} };

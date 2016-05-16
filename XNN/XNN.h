@@ -43,7 +43,6 @@ namespace XNN {
 	enum class XNNActivation {
 		ReLU,
 		PReLU,
-		Identity,  // 今のところ出力層専用
 		Sigmoid, // 今のところ出力層専用
 		Softmax,  // 今のところ出力層専用
 	};

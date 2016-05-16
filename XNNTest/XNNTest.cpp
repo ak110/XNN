@@ -37,8 +37,6 @@ TEST(XNN, ActivationLayer) {
 	EXPECT_EQ(0.0f, activation<XNNActivation::Sigmoid>(-100));
 	EXPECT_EQ(0.5f, activation<XNNActivation::Sigmoid>(0));
 	EXPECT_EQ(1.0f, activation<XNNActivation::Sigmoid>(100));
-	EXPECT_EQ(-3.0f, activation<XNNActivation::Identity>(-3));
-	EXPECT_EQ(+3.0f, activation<XNNActivation::Identity>(+3));
 }
 
 TEST(XNN, BatchNormalization) {
