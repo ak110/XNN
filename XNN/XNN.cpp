@@ -828,18 +828,22 @@ namespace XNN {
 			vector<float> mean, std, gamma, beta, emaMean, emaStd;
 			int batchSize;
 			bool firstUpdate = true;
-			Trainer(BatchNormalizationLayer& owner) :
+			Trainer(BatchNormalizationLayer& owner, const XNNParams& params) :
 				owner(owner),
-				optimizerW(owner.weights.size(), 1),
-				optimizerB(owner.biases.size(), 1),
+				// 入力の大きさに応じて謎チューニング
+				optimizerW(owner.weights.size(), 10.0 / sqrt(owner.inUnits)),
+				optimizerB(owner.biases.size(), 10.0 / sqrt(owner.inUnits)),
 				gradW(owner.inUnits),
 				gradB(owner.inUnits),
 				mean(owner.inUnits),
 				std(owner.inUnits),
 				gamma(owner.inUnits, 1.0f),
 				beta(owner.inUnits, 0.0f),
-				emaMean(owner.inUnits, 0.0f),
-				emaStd(owner.inUnits, 1.0f) {
+				emaMean(owner.inUnits),
+				emaStd(owner.inUnits) {
+				// 正則化項
+				optimizerW.l1 = params.l1;
+				optimizerW.l2 = params.l2;
 			}
 			void Clear() override {
 				gradW.Clear();
@@ -861,10 +865,6 @@ namespace XNN {
 					}
 				}
 				// 評価用のweight/biasの算出
-				// gamma * (元の値 - mean) / std + beta
-				// = {gamma / std} * (元の値 - mean) + beta
-				// = {gamma / std} * 元の値 + {gamma / std} * (- mean) + beta
-				// = {gamma / std} * 元の値 + {bias - {gamma / std} * mean}
 				for (size_t i = 0; i < owner.inUnits; i++) {
 					owner.weights[i] = gamma[i] / emaStd[i];
 					owner.biases[i] = beta[i] - owner.weights[i] * emaMean[i];
@@ -873,7 +873,7 @@ namespace XNN {
 		};
 		// 学習するクラスを作る
 		unique_ptr<ILayerTrainer> CreateTrainer(const XNNParams& params, mt19937_64& rnd) override {
-			return unique_ptr<ILayerTrainer>(new Trainer(*this));
+			return unique_ptr<ILayerTrainer>(new Trainer(*this, params));
 		}
 		// 順伝搬(学習時用)
 		void Forward(const vector<float> in[], vector<float> out[], int batchSize, ILayerTrainer* trainer_) override {
@@ -894,7 +894,7 @@ namespace XNN {
 				}
 			trainer.std /= batchSize;
 			for (size_t i = 0; i < inUnits; i++)
-				trainer.std[i] = sqrt(trainer.std[i] + 1e-8f);
+				trainer.std[i] = sqrt(trainer.std[i] + 1e-6f);
 			// 評価用のweight/biasの算出
 			// gamma * (元の値 - mean) / std + beta
 			// = {gamma / std} * (元の値 - mean) + beta
