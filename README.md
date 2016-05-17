@@ -58,7 +58,7 @@ optionsは「パラメータ名=値」形式でconfigの値を上書きする形
 * scale_input [既定値=true]
   - true  -- 入力をスケーリングする。(max(1,絶対値の最大値)で割るだけ。)
   - false -- 入力をスケーリングしない。
-* batch_normalization [既定値=true]
+* batch_normalization [既定値=false]
   - Batch Normalizationを使用するか否か。
 * l1 [既定値=0.0]
   - L1正則化項の重み。

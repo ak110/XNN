@@ -42,8 +42,8 @@ struct Config {
 		params.hiddenLayers = stoi(Get("hidden_layers", to_string(params.hiddenLayers)));
 		params.objective = XNNObjectiveFromString(Get("objective", ToString(params.objective)));
 		params.activation = XNNActivationFromString(Get("activation", ToString(params.activation)));
-		params.scaleInput = GetBool("scale_input", true) ? 1 : 0;
-		params.batchNormalization = GetBool("batch_normalization", true) ? 1 : 0;
+		params.scaleInput = GetBool("scale_input", params.scaleInput != 0) ? 1 : 0;
+		params.batchNormalization = GetBool("batch_normalization", params.batchNormalization != 0) ? 1 : 0;
 		params.l1 = stof(Get("l1", to_string(params.l1)));
 		params.l2 = stof(Get("l2", to_string(params.l2)));
 		params.dropoutKeepProb = stof(Get("dropout_keep_prob", to_string(params.dropoutKeepProb)));

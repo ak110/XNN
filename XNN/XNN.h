@@ -81,7 +81,7 @@ namespace XNN {
 		// Dropoutする場合に、残す割合を(0, 1]で指定する。1ならDropoutしない。0.75なら3/4は残す。
 		float dropoutKeepProb = 1;
 		// BatchNormalizationするなら1、しないなら0
-		int32_t batchNormalization = 1;
+		int32_t batchNormalization = 0;
 		// 念のため互換性用(互換性は読み込みに失敗せずPredictが可能になる程度まで。学習のパラメータは随時変更してしまう。)
 		int32_t reserved[60] = {};
 		// 初期化
