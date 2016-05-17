@@ -1262,8 +1262,8 @@ namespace XNN {
 					while (true) {
 						size_t n = accumulate(classes.begin(), classes.end(), 0ull,
 							[](size_t x, const ClassInfo& ci) { return x + ci.picking; });
-						assert(n <= params.miniBatchSize);
-						if (params.miniBatchSize <= n)
+						assert((int)n <= params.miniBatchSize);
+						if (params.miniBatchSize <= (int)n)
 							break;
 						// 最も端数の大きい物を選んで1個増やす
 						auto it = max_element(classes.begin(), classes.end(),
