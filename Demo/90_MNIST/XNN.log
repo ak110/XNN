@@ -1,31 +1,43 @@
 ネットワーク: 780:PReLU - (32:PReLU x 3) - 10
-検証: epoch=1 average: train={MAE= 1.9% RMSE= 9.6%} test={MAE= 1.9% RMSE= 9.7%}
-検証: epoch=2 average: train={MAE= 1.3% RMSE= 7.8%} test={MAE= 1.4% RMSE= 8.3%}
-検証: epoch=3 average: train={MAE= 1.0% RMSE= 6.9%} test={MAE= 1.1% RMSE= 7.6%}
-検証: epoch=4 average: train={MAE= 0.9% RMSE= 6.5%} test={MAE= 1.0% RMSE= 7.3%}
-検証: epoch=5 average: train={MAE= 0.8% RMSE= 6.1%} test={MAE= 0.9% RMSE= 7.0%}
-検証: epoch=6 average: train={MAE= 0.7% RMSE= 5.5%} test={MAE= 0.9% RMSE= 6.9%}
-検証: epoch=7 average: train={MAE= 0.6% RMSE= 5.1%} test={MAE= 0.8% RMSE= 6.8%}
-検証: epoch=8 average: train={MAE= 0.5% RMSE= 5.0%} test={MAE= 0.8% RMSE= 6.7%}
-検証: epoch=9 average: train={MAE= 0.5% RMSE= 4.7%} test={MAE= 0.8% RMSE= 6.7%}
-検証: epoch=10 average: train={MAE= 0.5% RMSE= 4.8%} test={MAE= 0.7% RMSE= 6.4%}
-検証: epoch=11 average: train={MAE= 0.5% RMSE= 4.8%} test={MAE= 0.7% RMSE= 6.3%}
-検証: epoch=12 average: train={MAE= 0.5% RMSE= 4.5%} test={MAE= 0.7% RMSE= 6.5%}
-検証: epoch=13 average: train={MAE= 0.4% RMSE= 3.9%} test={MAE= 0.7% RMSE= 6.3%}
-検証: epoch=14 average: train={MAE= 0.4% RMSE= 4.1%} test={MAE= 0.7% RMSE= 6.4%}
-検証: epoch=15 average: train={MAE= 0.3% RMSE= 3.6%} test={MAE= 0.6% RMSE= 6.3%}
-検証: epoch=16 average: train={MAE= 0.4% RMSE= 4.3%} test={MAE= 0.7% RMSE= 6.7%}
-検証: epoch=17 average: train={MAE= 0.4% RMSE= 4.1%} test={MAE= 0.7% RMSE= 6.6%}
-学習完了: 194.967秒
-class[0]: 適合率=97.2% 再現率=98.8% F値=98.0% 選択率=10.0% 分布= 9.8%
-class[1]: 適合率=98.7% 再現率=99.5% F値=99.1% 選択率=11.4% 分布=11.3%
-class[2]: 適合率=97.8% 再現率=97.4% F値=97.6% 選択率=10.3% 分布=10.3%
-class[3]: 適合率=97.5% 再現率=97.6% F値=97.6% 選択率=10.1% 分布=10.1%
-class[4]: 適合率=98.0% 再現率=96.7% F値=97.4% 選択率= 9.7% 分布= 9.8%
-class[5]: 適合率=97.0% 再現率=97.2% F値=97.1% 選択率= 8.9% 分布= 8.9%
-class[6]: 適合率=98.5% 再現率=97.4% F値=98.0% 選択率= 9.5% 分布= 9.6%
-class[7]: 適合率=96.6% 再現率=98.2% F値=97.3% 選択率=10.4% 分布=10.3%
-class[8]: 適合率=98.0% 再現率=95.8% F値=96.9% 選択率= 9.5% 分布= 9.7%
-class[9]: 適合率=96.2% 再現率=96.6% F値=96.4% 選択率=10.1% 分布=10.1%
-average:  適合率=97.6% 再現率=97.5% F値=97.5%
-検証完了: 0.0224ミリ秒/回
+検証: epoch=1 average: train={MAE= 1.8% RMSE= 9.2%} test={MAE= 1.8% RMSE= 9.4%}
+検証: epoch=2 average: train={MAE= 1.2% RMSE= 7.7%} test={MAE= 1.3% RMSE= 8.0%}
+検証: epoch=3 average: train={MAE= 0.9% RMSE= 6.6%} test={MAE= 1.0% RMSE= 7.4%}
+検証: epoch=4 average: train={MAE= 0.8% RMSE= 6.4%} test={MAE= 1.0% RMSE= 7.2%}
+検証: epoch=5 average: train={MAE= 0.7% RMSE= 5.8%} test={MAE= 0.8% RMSE= 6.7%}
+検証: epoch=6 average: train={MAE= 0.6% RMSE= 5.5%} test={MAE= 0.8% RMSE= 6.8%}
+検証: epoch=7 average: train={MAE= 0.5% RMSE= 4.8%} test={MAE= 0.7% RMSE= 6.6%}
+検証: epoch=8 average: train={MAE= 0.5% RMSE= 4.8%} test={MAE= 0.7% RMSE= 6.7%}
+検証: epoch=9 average: train={MAE= 0.5% RMSE= 4.5%} test={MAE= 0.7% RMSE= 6.7%}
+検証: epoch=10 average: train={MAE= 0.4% RMSE= 4.2%} test={MAE= 0.7% RMSE= 6.6%}
+検証: epoch=11 average: train={MAE= 0.4% RMSE= 4.1%} test={MAE= 0.7% RMSE= 6.5%}
+検証: epoch=12 average: train={MAE= 0.5% RMSE= 4.7%} test={MAE= 0.7% RMSE= 6.9%}
+検証: epoch=13 average: train={MAE= 0.4% RMSE= 4.1%} test={MAE= 0.7% RMSE= 6.8%}
+検証: epoch=14 average: train={MAE= 0.3% RMSE= 3.5%} test={MAE= 0.7% RMSE= 6.5%}
+検証: epoch=15 average: train={MAE= 0.3% RMSE= 3.6%} test={MAE= 0.6% RMSE= 6.4%}
+検証: epoch=16 average: train={MAE= 0.3% RMSE= 3.5%} test={MAE= 0.6% RMSE= 6.4%}
+検証: epoch=17 average: train={MAE= 0.3% RMSE= 3.5%} test={MAE= 0.6% RMSE= 6.5%}
+検証: epoch=18 average: train={MAE= 0.3% RMSE= 3.6%} test={MAE= 0.6% RMSE= 6.3%}
+検証: epoch=19 average: train={MAE= 0.3% RMSE= 3.3%} test={MAE= 0.6% RMSE= 6.4%}
+検証: epoch=20 average: train={MAE= 0.3% RMSE= 3.6%} test={MAE= 0.6% RMSE= 6.4%}
+検証: epoch=21 average: train={MAE= 0.2% RMSE= 3.2%} test={MAE= 0.6% RMSE= 6.3%}
+検証: epoch=22 average: train={MAE= 0.3% RMSE= 3.4%} test={MAE= 0.6% RMSE= 6.4%}
+検証: epoch=23 average: train={MAE= 0.2% RMSE= 3.0%} test={MAE= 0.6% RMSE= 6.3%}
+検証: epoch=24 average: train={MAE= 0.2% RMSE= 3.1%} test={MAE= 0.6% RMSE= 6.4%}
+検証: epoch=25 average: train={MAE= 0.2% RMSE= 2.7%} test={MAE= 0.5% RMSE= 6.0%}
+検証: epoch=26 average: train={MAE= 0.2% RMSE= 2.9%} test={MAE= 0.6% RMSE= 6.6%}
+検証: epoch=27 average: train={MAE= 0.2% RMSE= 3.1%} test={MAE= 0.6% RMSE= 6.2%}
+検証: epoch=28 average: train={MAE= 0.2% RMSE= 2.9%} test={MAE= 0.6% RMSE= 6.3%}
+検証: epoch=29 average: train={MAE= 0.2% RMSE= 2.8%} test={MAE= 0.6% RMSE= 6.3%}
+学習完了: 304.028秒
+class[0]: 適合率=98.6% 再現率=98.9% F値=98.7% 選択率= 9.8% 分布= 9.8%
+class[1]: 適合率=99.4% 再現率=99.1% F値=99.3% 選択率=11.3% 分布=11.3%
+class[2]: 適合率=97.6% 再現率=97.5% F値=97.5% 選択率=10.3% 分布=10.3%
+class[3]: 適合率=96.5% 再現率=98.0% F値=97.2% 選択率=10.3% 分布=10.1%
+class[4]: 適合率=97.9% 再現率=97.3% F値=97.6% 選択率= 9.8% 分布= 9.8%
+class[5]: 適合率=97.9% 再現率=97.8% F値=97.8% 選択率= 8.9% 分布= 8.9%
+class[6]: 適合率=97.6% 再現率=98.9% F値=98.2% 選択率= 9.7% 分布= 9.6%
+class[7]: 適合率=97.7% 再現率=97.0% F値=97.4% 選択率=10.2% 分布=10.3%
+class[8]: 適合率=98.1% 再現率=96.5% F値=97.3% 選択率= 9.6% 分布= 9.7%
+class[9]: 適合率=96.3% 再現率=96.7% F値=96.5% 選択率=10.1% 分布=10.1%
+average:  適合率=97.8% 再現率=97.8% F値=97.8%
+検証完了: 0.0237ミリ秒/回

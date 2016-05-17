@@ -1,6 +1,9 @@
 ネットワーク: 1:PReLU - (32:PReLU x 3) - 10
-検証: epoch=1 average: train={MAE= 0.2% RMSE= 0.4%} test={MAE= 0.2% RMSE= 0.4%}
-学習完了: 1.202秒
+検証: epoch=1 average: train={MAE= 0.3% RMSE= 0.8%} test={MAE= 0.3% RMSE= 0.8%}
+検証: epoch=2 average: train={MAE=18.0% RMSE=41.3%} test={MAE=18.0% RMSE=41.3%}
+検証: epoch=3 average: train={MAE= 1.1% RMSE= 3.0%} test={MAE= 1.1% RMSE= 3.1%}
+検証: epoch=4 average: train={MAE= 0.2% RMSE= 0.4%} test={MAE= 0.2% RMSE= 0.4%}
+学習完了: 4.607秒
 class[0]: 適合率=100.0% 再現率=100.0% F値=100.0% 選択率=10.0% 分布=10.0%
 class[1]: 適合率=100.0% 再現率=100.0% F値=100.0% 選択率=10.0% 分布=10.0%
 class[2]: 適合率=100.0% 再現率=100.0% F値=100.0% 選択率=10.0% 分布=10.0%
