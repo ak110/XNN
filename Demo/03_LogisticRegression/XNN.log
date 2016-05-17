@@ -1,16 +1,5 @@
 ネットワーク: 1:PReLU - (32:PReLU x 3) - 1
-検証: epoch=1 out[0] : train={MAE= 5.9% RMSE= 7.1%} test={MAE= 5.9% RMSE= 7.1%}
-検証: epoch=2 out[0] : train={MAE= 7.0% RMSE= 8.7%} test={MAE= 7.0% RMSE= 8.7%}
-検証: epoch=3 out[0] : train={MAE= 6.2% RMSE= 7.0%} test={MAE= 6.3% RMSE= 7.0%}
-検証: epoch=4 out[0] : train={MAE= 4.1% RMSE= 4.6%} test={MAE= 4.1% RMSE= 4.7%}
-検証: epoch=5 out[0] : train={MAE= 7.9% RMSE=10.5%} test={MAE= 7.8% RMSE=10.4%}
-検証: epoch=6 out[0] : train={MAE= 4.0% RMSE= 5.0%} test={MAE= 4.0% RMSE= 5.1%}
-検証: epoch=7 out[0] : train={MAE= 8.9% RMSE=13.5%} test={MAE= 8.8% RMSE=13.4%}
-検証: epoch=8 out[0] : train={MAE= 0.7% RMSE= 0.8%} test={MAE= 0.7% RMSE= 0.8%}
-検証: epoch=9 out[0] : train={MAE= 2.5% RMSE= 2.8%} test={MAE= 2.4% RMSE= 2.8%}
-検証: epoch=10 out[0] : train={MAE= 1.3% RMSE= 1.5%} test={MAE= 1.3% RMSE= 1.5%}
-検証: epoch=11 out[0] : train={MAE= 1.1% RMSE= 1.8%} test={MAE= 1.1% RMSE= 1.8%}
-検証: epoch=12 out[0] : train={MAE= 1.0% RMSE= 1.1%} test={MAE= 1.0% RMSE= 1.1%}
-学習完了: 13.227秒
-MAE= 0.7% RMSE= 0.8%
+検証: epoch=1 out[0] : train={MAE= 0.1% RMSE= 0.1%} test={MAE= 0.1% RMSE= 0.1%}
+学習完了: 1.083秒
+MAE= 0.1% RMSE= 0.1%
 検証完了: 0ミリ秒/回

@@ -44,15 +44,23 @@ TEST(XNN, BatchNormalization) {
 	mt19937_64 mt;
 	BatchNormalizationLayer layer(1);
 	auto trainer = layer.CreateTrainer(params, mt);
+	// 順伝搬
 	vector<float> in[3] = { { 3 }, { 4 }, { 5 } };
 	vector<float> out[3];
 	layer.Forward(in, out, 3, trainer.get());
-	EXPECT_NEAR(-1.2f, out[0][0], 0.1f);
-	EXPECT_NEAR(0.0f, out[1][0], 0.1f);
-	EXPECT_NEAR(1.2f, out[2][0], 0.1f);
+	EXPECT_NEAR(-1.224744f, out[0][0], 0.000001f);
+	EXPECT_NEAR(+0.000000f, out[1][0], 0.000001f);
+	EXPECT_NEAR(+1.224744f, out[2][0], 0.000001f);
+	// 逆伝搬
 	vector<float> errorIn{1.3f}, errorOut;
 	layer.Backward(*trainer, 0, in[0], out[0], errorOut, errorIn);
-	EXPECT_NEAR(0.3f, errorOut[0], 0.1f);
+	EXPECT_NEAR(0.53f, errorOut[0], 0.1f);
+	// 更新して再度順伝搬
+	trainer->Update();
+	layer.Forward(in, out, 3, trainer.get());
+	EXPECT_NEAR(-1.202496f, out[0][0], 0.000001f);
+	EXPECT_NEAR(+0.010000f, out[1][0], 0.000001f);
+	EXPECT_NEAR(+1.222497f, out[2][0], 0.000001f);
 }
 
 TEST(XNN, SVNLight) {

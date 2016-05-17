@@ -881,13 +881,13 @@ namespace XNN {
 			trainer.batchSize = batchSize;
 			// 平均
 			fill_n(trainer.mean.begin(), inUnits, 0.0f);
-			for (size_t mb = 0; mb < batchSize; mb++)
+			for (int mb = 0; mb < batchSize; mb++)
 				for (size_t i = 0; i < inUnits; i++)
 					trainer.mean[i] += in[mb][i];
 			trainer.mean /= batchSize;
 			// 標準偏差
 			fill_n(trainer.std.begin(), inUnits, 0.0f);
-			for (size_t mb = 0; mb < batchSize; mb++)
+			for (int mb = 0; mb < batchSize; mb++)
 				for (size_t i = 0; i < inUnits; i++) {
 					auto d = in[mb][i] - trainer.mean[i];
 					trainer.std[i] += d * d;
@@ -899,7 +899,7 @@ namespace XNN {
 			// gamma * (元の値 - mean) / std + beta
 			// = {gamma / std} * (元の値 - mean) + beta
 			// = {gamma / std} * 元の値 + {gamma / std} * (- mean) + beta
-			// = {gamma / std} * 元の値 + {bias - {gamma / std} * mean}
+			// = {gamma / std} * 元の値 + {beta - {gamma / std} * mean}
 			for (size_t i = 0; i < inUnits; i++) {
 				weights[i] = trainer.gamma[i] / trainer.std[i];
 				biases[i] = trainer.beta[i] - weights[i] * trainer.mean[i];
@@ -929,7 +929,7 @@ namespace XNN {
 				auto x = in[i] - trainer.mean[i];
 				auto gx = errorIn[i] * trainer.gamma[i];
 				auto gs = gx * x * (-0.5f) * pow(trainer.std[i], -3);
-				auto gm = gx * (-1) / trainer.std[i];
+				auto gm = gx * (-1) / trainer.std[i] + gs * (-2) * x / trainer.batchSize;
 				errorOut[i] =
 					gx / trainer.std[i] +
 					gs * 2 * x / trainer.batchSize +
