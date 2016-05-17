@@ -43,6 +43,7 @@ namespace XNN {
 	enum class XNNActivation {
 		ReLU,
 		PReLU,
+		ELU,
 		Sigmoid, // 今のところ出力層専用
 		Softmax,  // 今のところ出力層専用
 	};
@@ -75,7 +76,7 @@ namespace XNN {
 		// 2クラス分類のときの正例(ラベルが1のデータ)の重み。
 		float scalePosWeight = -1;
 		// 隠れ層の活性化関数(ReLU or PReLU)
-		XNNActivation activation = XNNActivation::PReLU;
+		XNNActivation activation = XNNActivation::ELU;
 		// ペナルティの重み
 		float l1 = 0, l2 = 0.01f;
 		// Dropoutする場合に、残す割合を(0, 1]で指定する。1ならDropoutしない。0.75なら3/4は残す。

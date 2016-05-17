@@ -671,11 +671,18 @@ namespace XNN {
 		}
 		// 順伝搬
 		void Forward(const vector<float>& in, vector<float>& out, ILayerTrainer* trainer) const override {
+			const float ELUAlpha = 1.0f;
 			out = in;
 			switch (Act) {
 			case XNNActivation::ReLU:
 				for (auto& x : out)
-					x = max(0.f, x);
+					if (x <= 0)
+						x = 0.0f;
+				break;
+			case XNNActivation::ELU:
+				for (auto& x : out)
+					if (x <= 0)
+						x = ELUAlpha * (exp(x) - 1);
 				break;
 			case XNNActivation::Sigmoid:
 				for (auto& x : out)
@@ -696,6 +703,7 @@ namespace XNN {
 		void Backward(ILayerTrainer& trainer, int mbIndex,
 			const vector<float>& in, const vector<float>& out,
 			vector<float>& errorOut, const vector<float>& errorIn) const override {
+			const float ELUAlpha = 1.0f;
 			errorOut = errorIn;
 			assert(errorOut.size() == out.size());
 			switch (Act) {
@@ -703,6 +711,11 @@ namespace XNN {
 				for (size_t o = 0; o < errorOut.size(); o++)
 					if (in[o] <= 0)
 						errorOut[o] = 0.0f;
+				break;
+			case XNNActivation::ELU:
+				for (size_t o = 0; o < errorOut.size(); o++)
+					if (in[o] <= 0)
+						errorOut[o] *= ELUAlpha * (exp(in[o]) - 1) + ELUAlpha;
 				break;
 			case XNNActivation::Sigmoid:
 			case XNNActivation::Softmax:
@@ -1103,6 +1116,8 @@ namespace XNN {
 					layers.emplace_back(new ActivationLayer<XNNActivation::ReLU>(outUnits));
 				else if (params.activation == XNNActivation::PReLU)
 					layers.emplace_back(new ActivationLayer<XNNActivation::PReLU>(outUnits));
+				else if (params.activation == XNNActivation::ELU)
+					layers.emplace_back(new ActivationLayer<XNNActivation::ELU>(outUnits));
 				else
 					throw XNNException("activationが不正: " + ToString(params.activation));
 				if (params.batchNormalization != 0)
@@ -1606,9 +1621,10 @@ namespace XNN {
 				"binary:logistic",
 				"multi:softmax",
 			} };
-		array<const char*, 4> activations = { {
+		array<const char*, 5> activations = { {
 				"ReLU",
 				"PReLU",
+				"ELU",
 				"Sigmoid",
 				"Softmax",
 			} };

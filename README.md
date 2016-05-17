@@ -52,9 +52,10 @@ optionsは「パラメータ名=値」形式でconfigの値を上書きする形
   - 隠れ層の数。0以上。0で隠れ層無し(＝線形モデル)になる。
 * out_units [既定値=1]
   - 出力のユニット数。1以上。多クラス分類の場合はクラス数。
-* activation [既定値=PReLU]
+* activation [既定値=ELU]
   - ReLU  -- 隠れ層の活性化関数にReLUを使用する。
   - PReLU -- 隠れ層の活性化関数にParametric ReLUを使用する。
+  - ELU   -- Exponential Linear Unit。
 * scale_input [既定値=true]
   - true  -- 入力をスケーリングする。(max(1,絶対値の最大値)で割るだけ。)
   - false -- 入力をスケーリングしない。

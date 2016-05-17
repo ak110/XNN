@@ -1,5 +1,9 @@
-ネットワーク: 1:PReLU - (32:PReLU x 3) - 1
-検証: epoch=1 out[0] : train={MAE= 0.2% RMSE= 0.2%} test={MAE= 0.2% RMSE= 0.2%}
-学習完了: 0.962秒
-MAE= 0.2% RMSE= 0.2%
+ネットワーク: 1:ELU - (32:ELU x 3) - 1
+検証: epoch=1 out[0] : train={MAE= 4.6% RMSE= 7.1%} test={MAE= 4.6% RMSE= 7.1%}
+検証: epoch=2 out[0] : train={MAE= 1.0% RMSE= 1.3%} test={MAE= 1.0% RMSE= 1.3%}
+検証: epoch=3 out[0] : train={MAE= 4.3% RMSE= 5.8%} test={MAE= 4.2% RMSE= 5.8%}
+検証: epoch=4 out[0] : train={MAE= 5.4% RMSE= 7.5%} test={MAE= 5.3% RMSE= 7.4%}
+検証: epoch=5 out[0] : train={MAE= 0.1% RMSE= 0.1%} test={MAE= 0.1% RMSE= 0.1%}
+学習完了: 4.978秒
+MAE= 0.1% RMSE= 0.1%
 検証完了: 0ミリ秒/回
