@@ -665,6 +665,7 @@ namespace XNN {
 		void Initialize(const vector<XNNData>& data, mt19937_64& rnd, double inputNorm, double& outputNorm) override {
 			switch (Act) {
 			case XNNActivation::ReLU: outputNorm = inputNorm / 2; break;
+			case XNNActivation::ELU: outputNorm = inputNorm; break;
 			case XNNActivation::Sigmoid: outputNorm = inputNorm / 2; break;
 			case XNNActivation::Softmax: outputNorm = 1.0; break;
 			}
