@@ -75,7 +75,7 @@ namespace XNN {
 		int32_t verbose = 1;
 		// 2クラス分類のときの正例(ラベルが1のデータ)の重み。
 		float scalePosWeight = -1;
-		// 隠れ層の活性化関数(ReLU or PReLU)
+		// 隠れ層の活性化関数(ReLU or PReLU or ELU)
 		XNNActivation activation = XNNActivation::ELU;
 		// ペナルティの重み
 		float l1 = 0, l2 = 0.01f;

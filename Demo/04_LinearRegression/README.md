@@ -12,7 +12,12 @@ objective = reg:linearで線形回帰。出力は任意の実数。
 
 - [設定ファイル(XNN.conf)](XNN.conf)
 - [データファイル(data.train)](data.train)
-- [データファイル(data.test)](data.test) (サンプルなのでdata.trainと中身は同じ)
+- [データファイル(data.test)](data.test)
+
+検証データを訓練データより細かくしたので、
+pred.txtをそのままグラフにすると、
+どう補間されるのか可視化出来る。
+(活性化関数の影響が大きそう。)
 
 
 実行結果
