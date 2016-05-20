@@ -314,8 +314,7 @@ namespace XNN {
 
 	// Adamによるパラメータの更新
 	struct AdamOptimizer : public OptimizerBase<AdamOptimizer> {
-		unique_ptr<double[]> m;
-		unique_ptr<double[]> v;
+		unique_ptr<double[]> m, v;
 
 		AdamOptimizer(size_t dimension, double scale) : OptimizerBase(dimension, scale), m(new double[dimension]), v(new double[dimension]) {
 			fill(m.get(), m.get() + dimension, 0.0);

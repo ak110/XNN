@@ -20,26 +20,85 @@ TEST(XNN, Adam) {
 	EXPECT_NEAR(0.00096495, optimizer.GetStep(0, 1.5, 5), 0.000001);
 }
 
+TEST(XNN, ToStringFromString) {
+	for (int i = 0; i < (int)stringTable.objectives.size(); i++)
+		EXPECT_EQ(XNNObjective(i), XNNObjectiveFromString(ToString(XNNObjective(i))));
+	for (int i = 0; i < (int)stringTable.activations.size(); i++)
+		EXPECT_EQ(XNNActivation(i), XNNActivationFromString(ToString(XNNActivation(i))));
+}
+
+namespace {
+	// 各レイヤーが基本的に満たすべき制約。出来るだけ言語仕様で縛りたいが、
+	// けちくさい高速化などのために変な仕組みになっているところも多いので…。
+	void TestLayerBasics(ILayer&& layer) {
+		vector<XNNData> data{
+			XNNData{ { 1, 2, 3 }, { 4, 5, 6 } },
+		};
+		XNNParams params(1);
+		mt19937_64 mt;
+
+		// Initializeの確認
+		double outputNorm = NAN;
+		layer.Initialize(data, mt, 33.0, outputNorm);
+		EXPECT_TRUE(!isnan(outputNorm) && !isinf(outputNorm)); // outputNormを何かしら設定することの確認
+
+		auto trainer = layer.CreateTrainer(params, mt);
+		EXPECT_NE(nullptr, trainer.get());
+		trainer->Clear(); // とりあえず死なないことだけでも。
+
+		// 順伝搬
+		vector<float> in[3] = { { 3, 3, 3 }, { 4, 4, 4 }, { 5, 5, 5 } };
+		vector<float> out[3];
+		layer.Forward(in, out, 3, trainer.get());
+		EXPECT_EQ((size_t)3, out[0].size());
+		EXPECT_EQ((size_t)3, out[1].size());
+		EXPECT_EQ((size_t)3, out[2].size());
+
+		// 逆伝搬
+		vector<float> errorIn{ 1.3f, 1.3f, 1.3f }, errorOut;
+		layer.Backward(*trainer, 0, in[0], out[0], errorOut, errorIn);
+		EXPECT_GE(errorOut.size(), (size_t)1); // 出力が1個以上あることの確認
+
+		// 更新
+		trainer->Update(); // とりあえず死なないことだけでも。
+
+		// セーブロード (とりあえず死なないことだけでも。)
+		stringstream ss;
+		layer.Save(ss);
+		layer.Load(ss);
+	}
+}
+TEST(Layers, Basics_InputScaling) { TestLayerBasics(InputScalingLayer(3)); }
+TEST(Layers, Basics_OutputScaling) { TestLayerBasics(OutputScalingLayer(3)); }
+TEST(Layers, Basics_FullyConnected) { TestLayerBasics(FullyConnectedLayer(3, 3)); }
+TEST(Layers, Basics_ReLU) { TestLayerBasics(ActivationLayer<XNNActivation::ReLU>(3)); }
+TEST(Layers, Basics_PReLU) { TestLayerBasics(ActivationLayer<XNNActivation::PReLU>(3)); }
+TEST(Layers, Basics_ELU) { TestLayerBasics(ActivationLayer<XNNActivation::ELU>(3)); }
+TEST(Layers, Basics_Sigmoid) { TestLayerBasics(ActivationLayer<XNNActivation::Sigmoid>(3)); }
+TEST(Layers, Basics_Softmax) { TestLayerBasics(ActivationLayer<XNNActivation::Softmax>(3)); }
+TEST(Layers, Basics_BatchNormalization) { TestLayerBasics(BatchNormalizationLayer(3)); }
+TEST(Layers, Basics_Dropout) { TestLayerBasics(DropoutLayer(3, 0.5)); }
+
 namespace {
 	template<XNNActivation Act>
-	float activation(float x) {
+	float Activate(float x) {
 		vector<float> out;
 		ActivationLayer<Act>(1).Forward({ x }, out, nullptr);
 		EXPECT_EQ(1, (int)out.size());
 		return out[0];
 	}
 }
-TEST(XNN, ActivationLayer) {
-	EXPECT_EQ(0.0f, activation<XNNActivation::ReLU>(-3));
-	EXPECT_EQ(3.0f, activation<XNNActivation::ReLU>(+3));
-	EXPECT_EQ(-0.25f, activation<XNNActivation::PReLU>(-1)); // 重みが初期値の場合
-	EXPECT_EQ(1.0f, activation<XNNActivation::PReLU>(+1));
-	EXPECT_EQ(0.0f, activation<XNNActivation::Sigmoid>(-100));
-	EXPECT_EQ(0.5f, activation<XNNActivation::Sigmoid>(0));
-	EXPECT_EQ(1.0f, activation<XNNActivation::Sigmoid>(100));
+TEST(Layers, ActivationLayer) {
+	EXPECT_EQ(0.0f, Activate<XNNActivation::ReLU>(-3));
+	EXPECT_EQ(3.0f, Activate<XNNActivation::ReLU>(+3));
+	EXPECT_EQ(-0.25f, Activate<XNNActivation::PReLU>(-1)); // 重みが初期値の場合
+	EXPECT_EQ(1.0f, Activate<XNNActivation::PReLU>(+1));
+	EXPECT_EQ(0.0f, Activate<XNNActivation::Sigmoid>(-100));
+	EXPECT_EQ(0.5f, Activate<XNNActivation::Sigmoid>(0));
+	EXPECT_EQ(1.0f, Activate<XNNActivation::Sigmoid>(100));
 }
 
-TEST(XNN, BatchNormalization) {
+TEST(Layers, BatchNormalization) {
 	XNNParams params(1);
 	mt19937_64 mt;
 	BatchNormalizationLayer layer(1);
@@ -63,7 +122,7 @@ TEST(XNN, BatchNormalization) {
 	EXPECT_NEAR(+1.222497f, out[2][0], 0.000001f);
 }
 
-TEST(XNN, SVNLight) {
+TEST(SVNLight, LoadSave) {
 	stringstream ss1, ss2;
 	ss1 << "1.23 1:5.6 3:8" << endl;
 	ss1 << "0,2 2:2 3:4.5678" << endl;
@@ -73,13 +132,6 @@ TEST(XNN, SVNLight) {
 	EXPECT_EQ(
 		"1.2 1:5.6 2:0.0 3:8.0 4:0.0\n"
 		"0.0,2.0 1:0.0 2:2.0 3:4.6 4:0.0\n", ss2.str());
-}
-
-TEST(XNN, ToStringFromString) {
-	for (int i = 0; i < (int)stringTable.objectives.size(); i++)
-		EXPECT_EQ(XNNObjective(i), XNNObjectiveFromString(ToString(XNNObjective(i))));
-	for (int i = 0; i < (int)stringTable.activations.size(); i++)
-		EXPECT_EQ(XNNActivation(i), XNNActivationFromString(ToString(XNNActivation(i))));
 }
 
 // TODO: もっとがんばる。
