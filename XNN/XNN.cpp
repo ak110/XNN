@@ -1589,7 +1589,7 @@ namespace XNN {
 						throw XNNException("特徴のインデックスが" + to_string(fMinIndex) + "未満: 行の内容=" + line);
 					if (inUnits + fMinIndex <= index)
 						throw XNNException("特徴のインデックスが" + to_string(inUnits + fMinIndex) + "以上: 行の内容=" + line);
-					data.in[index - 1] = stof(token.substr(coron + 1));
+					data.in[index - fMinIndex] = stof(token.substr(coron + 1));
 				}
 			}
 			result.emplace_back(move(data));
