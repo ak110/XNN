@@ -573,7 +573,7 @@ namespace XNN {
 			for (auto& x : weights)
 				x = nd(rnd);
 			for (auto& x : biases)
-				x = 0.1f / inUnits; // バイアスは適当な正の定数。dead neurons対策。
+				x = 0.1f; // バイアスは適当な正の定数。dead neurons対策。
 			outputNorm = (double)outUnits;
 		}
 		// 学習するクラス
@@ -585,7 +585,7 @@ namespace XNN {
 				owner(owner),
 				// 入力の大きさに応じて謎チューニング
 				optimizerW(owner.weights.size(), 10.0 / sqrt(owner.inputNorm)),
-				optimizerB(owner.biases.size(), 10.0 / sqrt(owner.inputNorm)),
+				optimizerB(owner.biases.size(), 1),
 				gradW(owner.weights.size()),
 				gradB(owner.biases.size()) {
 				// 正則化項
@@ -843,9 +843,8 @@ namespace XNN {
 			bool firstUpdate = true;
 			Trainer(BatchNormalizationLayer& owner, const XNNParams& params) :
 				owner(owner),
-				// 入力の大きさに応じて謎チューニング
-				optimizerW(owner.weights.size(), 10.0 / sqrt(owner.inUnits)),
-				optimizerB(owner.biases.size(), 10.0 / sqrt(owner.inUnits)),
+				optimizerW(owner.weights.size(), 1),
+				optimizerB(owner.biases.size(), 1),
 				gradW(owner.inUnits),
 				gradB(owner.inUnits),
 				mean(owner.inUnits),

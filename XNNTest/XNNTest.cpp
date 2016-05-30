@@ -117,9 +117,9 @@ TEST(Layers, BatchNormalization) {
 	// 更新して再度順伝搬
 	trainer->Update();
 	layer.Forward(in, out, 3, trainer.get());
-	EXPECT_NEAR(-1.202496f, out[0][0], 0.000001f);
-	EXPECT_NEAR(+0.010000f, out[1][0], 0.000001f);
-	EXPECT_NEAR(+1.222497f, out[2][0], 0.000001f);
+	EXPECT_NEAR(-1.222519f, out[0][0], 0.000001f);
+	EXPECT_NEAR(+0.001000f, out[1][0], 0.000001f);
+	EXPECT_NEAR(+1.224519f, out[2][0], 0.000001f);
 }
 
 TEST(SVNLight, LoadSave) {
