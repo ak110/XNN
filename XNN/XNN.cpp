@@ -1309,7 +1309,7 @@ namespace XNN {
 
 			size_t testSize = min(max(testData.size(), (size_t)10000), trainData.size());
 
-			for (size_t epoch = 1; ; epoch++) {
+			for (int epoch = 1; ; epoch++) {
 				// 学習
 				{
 					ProgressTimer timer;
@@ -1381,8 +1381,16 @@ namespace XNN {
 					// モデルを保存
 					bestModel.str(""); // 空にする
 					Save(bestModel);
+					// maxEpoch以上ならそこで終了
+					if (params.minEpoch <= epoch &&
+						params.maxEpoch != 0 &&
+						params.maxEpoch <= epoch)
+						break;
 				} else {
-					if (params.earlyStoppingTolerance < ++earlyStoppingCount) {
+					++earlyStoppingCount;
+					if ((params.maxEpoch != 0 && params.maxEpoch <= epoch) ||
+						(params.minEpoch <= epoch &&
+							params.earlyStoppingTolerance < earlyStoppingCount)) {
 						// 最高記録のモデルを復元
 						Load(bestModel);
 						break;

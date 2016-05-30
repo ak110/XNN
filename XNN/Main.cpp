@@ -49,6 +49,8 @@ struct Config {
 		params.dropoutKeepProb = stof(Get("dropout_keep_prob", to_string(params.dropoutKeepProb)));
 		params.scalePosWeight = stof(Get("scale_pos_weight", to_string(params.scalePosWeight)));
 		params.verbose = stoi(Get("verbose", to_string(params.verbose)));
+		params.minEpoch = stoi(Get("min_epoch", to_string(params.minEpoch)));
+		params.maxEpoch = stoi(Get("max_epoch", to_string(params.maxEpoch)));
 		return params;
 	}
 };

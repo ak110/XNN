@@ -83,8 +83,10 @@ namespace XNN {
 		float dropoutKeepProb = 1;
 		// BatchNormalizationするなら1、しないなら0
 		int32_t batchNormalization = 0;
+		// 学習を終了する最小・最大のepoch数
+		int32_t minEpoch = 1, maxEpoch = 10;
 		// 念のため互換性用(互換性は読み込みに失敗せずPredictが可能になる程度まで。学習のパラメータは随時変更してしまう。)
-		int32_t reserved[60] = {};
+		int32_t reserved[58] = {};
 		// 初期化
 		XNNParams(int inUnits) : inUnits(inUnits) {}
 		XNNParams(int inUnits, int hiddenUnits, int outUnits, int hiddenLayers)
