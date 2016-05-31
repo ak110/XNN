@@ -1,17 +1,17 @@
 scale_pos_weight = 0.934236
 ネットワーク: 60:ELU - (32:ELU x 3) - 1
-検証: epoch=1 out[0] : train={MAE=23.6% RMSE=34.0%} test={MAE=23.1% RMSE=33.3%}
-検証: epoch=2 out[0] : train={MAE=21.2% RMSE=32.4%} test={MAE=21.1% RMSE=32.3%}
-検証: epoch=3 out[0] : train={MAE=12.8% RMSE=24.2%} test={MAE=14.1% RMSE=26.7%}
-検証: epoch=4 out[0] : train={MAE=11.4% RMSE=22.6%} test={MAE=13.7% RMSE=26.9%}
-検証: epoch=5 out[0] : train={MAE=10.4% RMSE=22.3%} test={MAE=12.2% RMSE=26.2%}
-検証: epoch=6 out[0] : train={MAE= 9.5% RMSE=20.6%} test={MAE=12.1% RMSE=26.1%}
-検証: epoch=7 out[0] : train={MAE= 9.2% RMSE=20.2%} test={MAE=12.7% RMSE=27.4%}
-検証: epoch=8 out[0] : train={MAE= 8.4% RMSE=18.8%} test={MAE=12.6% RMSE=27.7%}
-検証: epoch=9 out[0] : train={MAE= 7.2% RMSE=17.1%} test={MAE=11.8% RMSE=27.3%}
-検証: epoch=10 out[0] : train={MAE= 6.5% RMSE=16.0%} test={MAE=11.6% RMSE=27.4%}
-学習完了: 14.212秒
-class[0]: 適合率=89.6% 再現率=91.5% F値=90.5% 選択率=49.0% 分布=48.0%
-class[1]: 適合率=92.0% 再現率=90.2% F値=91.1% 選択率=51.0% 分布=52.0%
-average:  適合率=90.8% 再現率=90.8% F値=90.8%
+検証: epoch=1 out[0] : train={MAE=23.7% RMSE=34.1%} test={MAE=23.2% RMSE=33.4%}
+検証: epoch=2 out[0] : train={MAE=22.4% RMSE=33.3%} test={MAE=22.2% RMSE=33.0%}
+検証: epoch=3 out[0] : train={MAE=22.4% RMSE=33.0%} test={MAE=22.2% RMSE=32.7%}
+検証: epoch=4 out[0] : train={MAE=20.3% RMSE=31.1%} test={MAE=20.6% RMSE=31.8%}
+検証: epoch=5 out[0] : train={MAE=11.0% RMSE=22.2%} test={MAE=13.4% RMSE=26.9%}
+検証: epoch=6 out[0] : train={MAE= 9.5% RMSE=20.7%} test={MAE=12.4% RMSE=26.4%}
+検証: epoch=7 out[0] : train={MAE= 9.2% RMSE=20.3%} test={MAE=13.2% RMSE=28.1%}
+検証: epoch=8 out[0] : train={MAE= 8.9% RMSE=19.7%} test={MAE=13.8% RMSE=29.3%}
+検証: epoch=9 out[0] : train={MAE= 7.2% RMSE=17.1%} test={MAE=12.8% RMSE=28.5%}
+検証: epoch=10 out[0] : train={MAE= 6.6% RMSE=16.1%} test={MAE=12.5% RMSE=28.6%}
+学習完了: 14.164秒
+class[0]: 適合率=88.8% 再現率=92.1% F値=90.5% 選択率=49.8% 分布=48.0%
+class[1]: 適合率=92.5% 再現率=89.3% F値=90.9% 選択率=50.2% 分布=52.0%
+average:  適合率=90.7% 再現率=90.7% F値=90.7%
 検証完了: 0.00367816ミリ秒/回
