@@ -40,7 +40,7 @@ namespace {
 		// Initializeの確認
 		double outputNorm = NAN;
 		layer.Initialize(data, mt, 33.0, outputNorm);
-		EXPECT_TRUE(!isnan(outputNorm) && !isinf(outputNorm)); // outputNormを何かしら設定することの確認
+		EXPECT_TRUE(!std::isnan(outputNorm) && !std::isinf(outputNorm)); // outputNormを何かしら設定することの確認
 
 		auto trainer = layer.CreateTrainer(params, mt);
 		EXPECT_NE(nullptr, trainer.get());
