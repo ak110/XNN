@@ -119,13 +119,8 @@ namespace XNN {
 		}
 	};
 
-	struct IScore {
-		virtual void Add(float label, float pred) = 0;
-		virtual void Add(const vector<float>& label, const vector<float>& pred) = 0;
-		virtual string ToString() const = 0;
-	};
-	// 二乗平均平方根を算出するためのクラス(スレッドセーフ)
-	struct RegressionScore : public IScore {
+	// 回帰の統計情報
+	struct RegressionReport {
 		mutex mtx;
 		struct {
 			double totalA = 0.0, total2 = 0.0;
@@ -137,48 +132,38 @@ namespace XNN {
 			double scale = 100;
 			string suffix = "%";
 		} formats;
-		RegressionScore() = default;
-		RegressionScore(const RegressionScore& other) {
-			values = other.values;
-			formats = other.formats;
+		RegressionReport() = default;
+		// ゼロクリア
+		void Clear() {
+			values = remove_reference<decltype(values)>::type();
 		}
-		void Clear() { values = remove_reference<decltype(values)>::type(); }
-		void operator+=(const RegressionScore& other) {
-			lock_guard<mutex> lock(mtx);
-			values.totalA += other.values.totalA;
-			values.total2 += other.values.total2;
-			values.count += other.values.count;
-		}
-		void Add(double error) {
+		// 結果の追加
+		void Add(float label, float pred) {
+			double error = label - pred;
 			lock_guard<mutex> lock(mtx);
 			values.totalA += abs(error);
 			values.total2 += error * error;
 			values.count++;
 		}
-		// MAE(Mean absolete error、平均絶対誤差)
+		// MAE(Mean absolete error、平均絶対誤差)を返す。
 		double GetMAE() const { return values.totalA / values.count; }
-		// RMSE(Root mean square error、二乗平均平方根誤差)
+		// RMSE(Root mean square error、二乗平均平方根誤差)を返す。
 		double GetRMSE() const { return sqrt(values.total2 / values.count); }
-		// 追加(二値分類/回帰用)
-		void Add(float label, float pred) override {
-			Add(label - pred);
-		}
-		// 追加(多クラス分類用)
-		void Add(const vector<float>& label, const vector<float>& pred) override {
-			assert(false);
-		}
-		// 文字列化
-		string ToString() const override {
+		// シンプルな文字列化(改行なし、複数行不可)
+		string ToString() const {
 			stringstream ss;
 			ss << fixed << setprecision(formats.precision)
 				<< "MAE=" << setw(formats.width + formats.precision) << GetMAE() * formats.scale << formats.suffix
 				<< " RMSE=" << setw(formats.width + formats.precision) << GetRMSE() * formats.scale << formats.suffix;
 			return ss.str();
 		}
+		// 詳細な文字列化(末尾に改行あり、複数行可)
+		string ToStringDetail() const {
+			return ToString() + "\n";
+		}
 	};
-	// 適合率、再現率、F値を計算する(スレッドセーフ)
-	// sklearnのclassification_reportを参考にしてみた。
-	struct ClassificationScore : IScore {
+	// クラス分類の統計情報
+	struct ClassificationReport {
 		struct CountList : array<atomic<uint64_t>, 3> {
 			CountList() = default;
 			CountList(const CountList& other) {
@@ -187,34 +172,15 @@ namespace XNN {
 			}
 		};
 		vector<CountList> list;
-		ClassificationScore(size_t classCount = 2) : list(classCount) {}
-		ClassificationScore(const ClassificationScore& other) { *this = other; }
-		void Clear() { *this = ClassificationScore(list.size()); }
-		void operator=(const ClassificationScore& other) {
-			assert(list.size() == other.list.size());
-			for (size_t i = 0; i < list.size(); i++)
-				for (size_t j = 0; j < list[i].size(); j++)
-					list[i][j] = other.list[i][j].load();
+		ClassificationReport(int classCount = 2) : list(classCount) {}
+		// ゼロクリア
+		void Clear() {
+			list = vector<CountList>(list.size());
 		}
-		void operator+=(const ClassificationScore& other) {
-			assert(list.size() == other.list.size());
-			for (size_t i = 0; i < list.size(); i++)
-				for (size_t j = 0; j < list[i].size(); j++)
-					list[i][j] += other.list[i][j];
-		}
-		// 追加(多クラス分類用)
-		void Add(const vector<float>& label, const vector<float>& pred) override {
-			assert(label.size() == list.size());
-			assert(pred.size() == list.size());
-			size_t labelClass = max_element(label.begin(), label.end()) - label.begin();
-			size_t pickClass = max_element(pred.begin(), pred.end()) - pred.begin();
-			Add(labelClass, pickClass);
-		}
-		// 追加(二値分類/回帰用)
-		void Add(float label, float pred) override {
-			Add(size_t(0.5 <= label), size_t(0.5 <= pred));
-		}
+		// 追加(classIndex指定)
 		void Add(size_t labelClass, size_t pickClass) {
+			assert(labelClass < list.size());
+			assert(pickClass  < list.size());
 			if (labelClass == pickClass) {
 				list[labelClass][0]++;
 			} else {
@@ -243,8 +209,23 @@ namespace XNN {
 			auto p = GetPrecision(classIndex), r = GetRecall(classIndex);
 			return 2 * p * r / (p + r);
 		}
-		// 文字列化
-		string ToString() const override {
+		// 正解率: 適合率の重み付き平均
+		double GetAccuracy() const {
+			uint64_t sum = 0, total = 0;
+			for (size_t classIndex = 0; classIndex < list.size(); classIndex++) {
+				sum += list[classIndex][0];
+				total += GetLabelCount(classIndex);
+			}
+			return (double)sum / total;
+		}
+		// シンプルな文字列化(改行なし、複数行不可)
+		string ToString() const {
+			stringstream ss;
+			ss << "Acc=" << fixed << setprecision(1) << setw(4) << GetAccuracy() * 100 << "%";
+			return ss.str();
+		}
+		// 詳細な文字列化(末尾に改行あり、複数行可)
+		string ToStringDetail() const {
 			uint64_t total = 0;
 			for (size_t classIndex = 0; classIndex < list.size(); classIndex++)
 				total += GetLabelCount(classIndex);
@@ -277,6 +258,156 @@ namespace XNN {
 			return ss.str();
 		}
 	};
+
+	// ニューラルネット用の統計情報
+	struct IScore {
+		// ゼロクリア
+		virtual void Clear() = 0;
+		// 結果の追加
+		virtual void Add(const vector<float>& label, const vector<float>& pred) = 0;
+		// MAE(Mean absolete error、平均絶対誤差)を返す。
+		virtual double GetMAE() const = 0;
+		// RMSE(Root mean square error、二乗平均平方根誤差)を返す。
+		virtual double GetRMSE() const = 0;
+		// シンプルな文字列化(改行なし、複数行不可)
+		virtual string ToString() const = 0;
+		// 詳細な文字列化(末尾に改行あり、複数行可)
+		virtual string ToStringDetail() const = 0;
+	};
+	// 回帰
+	struct RegressionScore : public IScore {
+		vector<RegressionReport> reports;
+		RegressionScore(int outCount, bool logistic) : reports(outCount) {
+			if (!logistic) {
+				for (RegressionReport& rr : reports) {
+					rr.formats.scale = 1;
+					rr.formats.suffix = "";
+				}
+			}
+		}
+		virtual void Clear() override {
+			for (auto& s : reports)
+				s.Clear();
+		}
+		virtual void Add(const vector<float>& label, const vector<float>& pred) override {
+			assert(label.size() == reports.size());
+			assert(pred.size() == reports.size());
+			for (size_t i = 0, n = reports.size(); i < n; i++)
+				reports[i].Add({ label[i] }, { pred[i] });
+		}
+		virtual double GetMAE() const override {
+			// 平均を返す
+			return accumulate(reports.begin(), reports.end(), 0.0,
+				[](double sum, const RegressionReport& s) { return sum + s.GetMAE(); }) / reports.size();
+		}
+		virtual double GetRMSE() const override {
+			// 平均を返す
+			return accumulate(reports.begin(), reports.end(), 0.0,
+				[](double sum, const RegressionReport& s) { return sum + s.GetRMSE(); }) / reports.size();
+		}
+		virtual string ToString() const override {
+			stringstream ss;
+			ss << fixed << setprecision(reports[0].formats.precision)
+				<< "MAE=" << setw(reports[0].formats.width + reports[0].formats.precision) << GetMAE() * reports[0].formats.scale << reports[0].formats.suffix
+				<< " RMSE=" << setw(reports[0].formats.width + reports[0].formats.precision) << GetRMSE() * reports[0].formats.scale << reports[0].formats.suffix;
+			return ss.str();
+		}
+		virtual string ToStringDetail() const override {
+			stringstream ss;
+			for (size_t o = 0; o < reports.size(); o++) {
+				if (2 <= reports.size())
+					ss << "--------------------------- out[" << o << "] ---------------------------" << endl;
+				ss << reports[o].ToStringDetail();
+			}
+			return ss.str();
+		}
+	};
+	// 2クラス分類
+	struct BinaryClassificationScore : public IScore {
+		RegressionReport regReport;
+		vector<ClassificationReport> reports;
+		BinaryClassificationScore(int outCount) : reports(outCount) {}
+		virtual void Clear() override {
+			regReport.Clear();
+			for (auto& s : reports)
+				s.Clear();
+		}
+		virtual void Add(const vector<float>& label, const vector<float>& pred) override {
+			for (size_t i = 0, n = reports.size(); i < n; i++) {
+				regReport.Add(label[i], pred[i]);
+				reports[i].Add(size_t(0.5f <= label[i]), size_t(0.5f <= pred[i]));
+			}
+		}
+		virtual double GetMAE() const override { return regReport.GetMAE(); }
+		virtual double GetRMSE() const override { return regReport.GetRMSE(); }
+		virtual string ToString() const override {
+			stringstream ss;
+			ss << regReport.ToString();
+			ss << " " << fixed << setprecision(1) << GetAccuracy() * 100 << "%";
+			return ss.str();
+		}
+		virtual string ToStringDetail() const override {
+			stringstream ss;
+			for (size_t o = 0; o < reports.size(); o++) {
+				if (2 <= reports.size())
+					ss << "--------------------------- out[" << o << "] ---------------------------" << endl;
+				ss << reports[o].ToStringDetail();
+			}
+			return ss.str();
+		}
+		// 正解率
+		double GetAccuracy() const {
+			return accumulate(reports.begin(), reports.end(), 0.0,
+				[](double s, const ClassificationReport& r) { return s + r.GetAccuracy(); }) / reports.size();
+		}
+	};
+	// 多クラス分類
+	struct MulticlassClassificationScore : public IScore {
+		RegressionReport regReport;
+		ClassificationReport report;
+		MulticlassClassificationScore(int classes) : report(classes) {}
+		virtual void Clear() override {
+			regReport.Clear();
+			report.Clear();
+		}
+		virtual void Add(const vector<float>& label, const vector<float>& pred) override {
+			assert(label.size() == pred.size());
+			size_t labelClass = max_element(label.begin(), label.end()) - label.begin();
+			size_t pickClass = max_element(pred.begin(), pred.end()) - pred.begin();
+			report.Add(labelClass, pickClass);
+			for (size_t i = 0, n = label.size(); i < n; i++)
+				regReport.Add(label[i], pred[i]);
+		}
+		virtual double GetMAE() const override { return regReport.GetMAE(); }
+		virtual double GetRMSE() const override { return regReport.GetRMSE(); }
+		virtual string ToString() const override {
+			return regReport.ToString() + " " + report.ToString();
+		}
+		virtual string ToStringDetail() const override {
+			return report.ToStringDetail();
+		}
+	};
+
+	// 統計用クラスを作成
+	unique_ptr<IScore> CreateScore(const XNNParams& params) {
+		switch (params.objective) {
+		case XNNObjective::RegLinear:
+			return unique_ptr<IScore>(new RegressionScore(params.outUnits, false));
+
+		case XNNObjective::RegLogistic:
+			return unique_ptr<IScore>(new RegressionScore(params.outUnits, true));
+
+		case XNNObjective::BinaryLogistic:
+			return unique_ptr<IScore>(new BinaryClassificationScore(params.outUnits));
+
+		case XNNObjective::MultiSoftmax:
+			return unique_ptr<IScore>(new MulticlassClassificationScore(params.outUnits));
+
+		default:
+			assert(false);
+			return unique_ptr<IScore>();
+		}
+	}
 
 	// パラメータを更新する人たちの共通的な処理
 	template<class DerivedClass>
@@ -1315,19 +1446,19 @@ namespace XNN {
 					ProgressTimer timer;
 
 					const size_t MaxMB = trainData.size() / params.miniBatchSize;
-					RegressionScore score;
+					auto score = CreateScore(params);
 					for (size_t mb = 0; mb < MaxMB; mb++) {
-						score += PartialFit(trainData, mb * params.miniBatchSize, params.miniBatchSize);
+						PartialFit(trainData, mb * params.miniBatchSize, params.miniBatchSize, *score);
 
 						if (1 <= params.verbose && (mb + 1) % (MaxMB / 10) == 0) {
 							timer.Set(mb + 1, MaxMB);
 							logger << "学習:"
 								<< " epoch=" << epoch
 								<< " " << timer.ToStringCount()
-								<< " train={" << score.ToString() << "}"
+								<< " train={" << score->ToString() << "}"
 								<< " " << timer.ToStringTime()
 								<< endl;
-							score.Clear();
+							score->Clear();
 						}
 					}
 				}
@@ -1336,42 +1467,25 @@ namespace XNN {
 				shuffle(trainData.begin(), trainData.begin() + testSize, mt);
 				auto pred1 = Predict(trainData, 0, testSize);
 				auto pred2 = Predict(testData, 0, testData.size());
-				assert(pred1.size() == pred2.size());
 
 				// 表示
-				if (1 <= params.verbose || pred2.size() <= 1) {
-					for (size_t o = 0; o < pred2.size(); o++)
-						logger << "検証: epoch=" << epoch
-						<< " out[" << o << "] :"
-						<< " train={" << pred1[o].ToString() << "}"
-						<< " test={" << pred2[o].ToString() << "}"
-						<< endl;
-				}
-				RegressionScore average1, average2;
-				for (size_t o = 0; o < pred2.size(); o++) {
-					average1 += pred1[o];
-					average2 += pred2[o];
-				}
-				if (1 < pred2.size()) {
-					logger << "検証: epoch=" << epoch
-						<< " average:"
-						<< " train={" << average1.ToString() << "}"
-						<< " test={" << average2.ToString() << "}"
-						<< endl;
-				}
+				logger << "検証: epoch=" << epoch
+					<< " train={" << pred1->ToString() << "}"
+					<< " test={" << pred2->ToString() << "}"
+					<< endl;
 				if (history != nullptr) {
 					if (epoch == 1)
 						*history << "epoch,train mae,train rmse,test mae,test rmse" << endl;
 					*history << epoch
-						<< "," << average1.GetMAE()
-						<< "," << average1.GetRMSE()
-						<< "," << average2.GetMAE()
-						<< "," << average2.GetRMSE()
+						<< "," << pred1->GetMAE()
+						<< "," << pred1->GetRMSE()
+						<< "," << pred2->GetMAE()
+						<< "," << pred2->GetRMSE()
 						<< endl;
 				}
 
 				// 終了判定
-				auto rmse = average2.GetRMSE();
+				auto rmse = pred2->GetRMSE();
 				if (rmse < 0.005)
 					break; // 充分小さければ止まる
 				if (rmse < minRMSE) {
@@ -1405,7 +1519,7 @@ namespace XNN {
 			logger << "学習完了: " << (duration_cast<milliseconds>(dt).count() / 1000.0) << "秒" << endl;
 		}
 		// ミニバッチによる更新
-		RegressionScore PartialFit(const std::vector<XNNData>& trainData, size_t startIndex, size_t count) {
+		void PartialFit(const std::vector<XNNData>& trainData, size_t startIndex, size_t count, IScore& score) {
 			// 勾配をクリア
 #pragma omp parallel for schedule(dynamic)
 			for (int i = 0; i < (int)trainers.size(); i++)
@@ -1433,21 +1547,20 @@ namespace XNN {
 				ThreadLocal(int hiddenUnits) : errorIn(hiddenUnits), errorOut(hiddenUnits) {}
 			};
 			vector<ThreadLocal> locals(omp_get_max_threads(), ThreadLocal(params.hiddenUnits));
-			RegressionScore score;
 #pragma omp parallel for
 			for (int mb = 0; mb < (int)count; mb++) {
 				auto& data = trainData[startIndex + mb];
 				auto& local = locals[omp_get_thread_num()];
 				auto& errorIn = local.errorIn;
 				auto& errorOut = local.errorOut;
-				// エラーを算出
-				// ロジスティック回帰／線形二乗誤差：教師 - 予測
+				// 集計
 				errorIn = data.out;
 				TransformOutput(errorIn);
+				score.Add(errorIn, out.back()[mb]);
+				// エラーを算出
+				// ロジスティック回帰／線形二乗誤差：教師 - 予測
 				for (size_t i = 0; i < errorIn.size(); i++)
 					errorIn[i] = errorIn[i] - out.back()[mb][i];
-				// 集計
-				score.Add(accumulate(errorIn.begin(), errorIn.end(), 0.0) / errorIn.size());
 				// scale_pos_weight
 				if (params.objective == XNNObjective::BinaryLogistic) {
 					for (size_t i = 0; i < errorIn.size(); i++)
@@ -1465,21 +1578,18 @@ namespace XNN {
 #pragma omp parallel for schedule(dynamic)
 			for (int i = 0; i < (int)trainers.size(); i++)
 				trainers[i]->Update();
-
-			return score;
 		}
 
 		// 予測
-		vector<RegressionScore> Predict(const std::vector<XNNData>& testData, size_t startIndex, size_t count) const {
-			vector<RegressionScore> score(params.outUnits);
+		unique_ptr<IScore> Predict(const std::vector<XNNData>& testData, size_t startIndex, size_t count) const {
+			unique_ptr<IScore> score = CreateScore(params);
 #pragma omp parallel for
 			for (int i = 0; i < (int)count; i++) {
 				auto data = testData[startIndex + i];
 				auto pred = Predict(move(data.in));
 				assert((int)pred.size() == params.outUnits);
 				TransformOutput(data.out);
-				for (size_t o = 0; o < pred.size(); o++)
-					score[o].Add(data.out[o] - pred[o]);
+				score->Add(data.out, pred);
 			}
 			return score;
 		}
@@ -1499,32 +1609,14 @@ namespace XNN {
 			auto milliSecPerPredict = (double)milliSec / testData.size();
 
 			// 結果の集計・整形
-			vector<unique_ptr<IScore>> score;
-			switch (params.objective) {
-			case XNNObjective::RegLinear:
-			case XNNObjective::RegLogistic:
-				for (int i = 0; i < params.outUnits; i++)
-					score.emplace_back(new RegressionScore());
-				break;
-			case XNNObjective::BinaryLogistic:
-				for (int i = 0; i < params.outUnits; i++)
-					score.emplace_back(new ClassificationScore(2));
-				break;
-			case XNNObjective::MultiSoftmax:
-				score.emplace_back(new ClassificationScore(params.outUnits));
-				break;
-			}
+			unique_ptr<IScore> score = CreateScore(params);
 			stringstream raw;
 			raw << fixed << setprecision(7);
 			for (int i = 0; i < (int)result.size(); i++) {
 				auto& data = testData[i];
 				auto& pred = result[i];
 				TransformOutput(data.out);
-				if (params.objective == XNNObjective::MultiSoftmax)
-					score[0]->Add(data.out, pred);
-				else
-					for (size_t o = 0; o < pred.size(); o++)
-						score[o]->Add(data.out[o], pred[o]);
+				score->Add(data.out, pred);
 				for (size_t o = 0; o < pred.size(); o++) {
 					if (0 < o)
 						raw << " ";
@@ -1532,15 +1624,7 @@ namespace XNN {
 				}
 				raw << endl;
 			}
-			for (size_t o = 0; o < score.size(); o++) {
-				if (2 <= score.size())
-					logger << "--------------------------- out[" << o << "] ---------------------------" << endl;
-				logger << score[o]->ToString();
-				if (params.objective == XNNObjective::RegLinear ||
-					params.objective == XNNObjective::RegLogistic)
-					logger << endl; // TODO:そのうちなんとかする
-			}
-
+			logger << score->ToStringDetail() << flush;
 			logger << "検証完了: " << milliSecPerPredict << "ミリ秒/回" << endl;
 			return raw.str();
 		}

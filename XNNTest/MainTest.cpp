@@ -28,7 +28,7 @@ TEST(Main, Heavy_AndOrXor) {
 	}
 
 	XNNParams params(2, 8, 3, 1);
-	params.verbose = 0;
+	params.objective = XNNObjective::BinaryLogistic;
 	XNNModel dnn(params);
 	dnn.Train(vector<XNNData>(data), vector<XNNData>(data));
 
