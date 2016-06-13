@@ -1,16 +1,16 @@
 scale_pos_weight = 0.934236
 ネットワーク: 60:ELU - (32:ELU x 3) - 1
-検証: epoch=1 out[0] : train={MAE=23.7% RMSE=34.1%} test={MAE=23.2% RMSE=33.4%}
-検証: epoch=2 out[0] : train={MAE=22.4% RMSE=33.3%} test={MAE=22.2% RMSE=33.0%}
-検証: epoch=3 out[0] : train={MAE=22.4% RMSE=33.0%} test={MAE=22.2% RMSE=32.7%}
-検証: epoch=4 out[0] : train={MAE=20.3% RMSE=31.1%} test={MAE=20.6% RMSE=31.8%}
-検証: epoch=5 out[0] : train={MAE=11.0% RMSE=22.2%} test={MAE=13.4% RMSE=26.9%}
-検証: epoch=6 out[0] : train={MAE= 9.5% RMSE=20.7%} test={MAE=12.4% RMSE=26.4%}
-検証: epoch=7 out[0] : train={MAE= 9.2% RMSE=20.3%} test={MAE=13.2% RMSE=28.1%}
-検証: epoch=8 out[0] : train={MAE= 8.9% RMSE=19.7%} test={MAE=13.8% RMSE=29.3%}
-検証: epoch=9 out[0] : train={MAE= 7.2% RMSE=17.1%} test={MAE=12.8% RMSE=28.5%}
-検証: epoch=10 out[0] : train={MAE= 6.6% RMSE=16.1%} test={MAE=12.5% RMSE=28.6%}
-学習完了: 14.164秒
+検証: epoch=1 train={MAE=23.7% RMSE=34.1% Acc=82.8%} test={MAE=23.2% RMSE=33.4% Acc=84.0%}
+検証: epoch=2 train={MAE=22.4% RMSE=33.3% Acc=84.4%} test={MAE=22.2% RMSE=33.0% Acc=85.0%}
+検証: epoch=3 train={MAE=22.4% RMSE=33.0% Acc=84.8%} test={MAE=22.2% RMSE=32.7% Acc=85.2%}
+検証: epoch=4 train={MAE=20.2% RMSE=31.0% Acc=86.5%} test={MAE=20.6% RMSE=31.8% Acc=85.8%}
+検証: epoch=5 train={MAE=11.0% RMSE=22.2% Acc=93.8%} test={MAE=13.4% RMSE=26.9% Acc=90.4%}
+検証: epoch=6 train={MAE= 9.4% RMSE=20.7% Acc=94.7%} test={MAE=12.4% RMSE=26.3% Acc=90.7%}
+検証: epoch=7 train={MAE= 9.2% RMSE=20.3% Acc=94.8%} test={MAE=13.2% RMSE=28.1% Acc=90.0%}
+検証: epoch=8 train={MAE= 8.9% RMSE=19.7% Acc=95.3%} test={MAE=13.8% RMSE=29.3% Acc=88.7%}
+検証: epoch=9 train={MAE= 7.3% RMSE=17.2% Acc=96.4%} test={MAE=13.0% RMSE=28.7% Acc=89.4%}
+検証: epoch=10 train={MAE= 6.6% RMSE=16.1% Acc=96.8%} test={MAE=12.6% RMSE=28.7% Acc=89.4%}
+学習完了: 14.234秒
 class[0]: 適合率=88.8% 再現率=92.1% F値=90.5% 選択率=49.8% 分布=48.0%
 class[1]: 適合率=92.5% 再現率=89.3% F値=90.9% 選択率=50.2% 分布=52.0%
 average:  適合率=90.7% 再現率=90.7% F値=90.7%

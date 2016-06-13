@@ -1,15 +1,15 @@
 ネットワーク: 780:ELU - (32:ELU x 3) - 10
-検証: epoch=1 average: train={MAE= 1.6% RMSE= 8.8%} test={MAE= 1.6% RMSE= 9.0%}
-検証: epoch=2 average: train={MAE= 1.2% RMSE= 7.4%} test={MAE= 1.2% RMSE= 8.0%}
-検証: epoch=3 average: train={MAE= 0.9% RMSE= 6.4%} test={MAE= 1.0% RMSE= 7.6%}
-検証: epoch=4 average: train={MAE= 0.7% RMSE= 5.8%} test={MAE= 0.9% RMSE= 7.1%}
-検証: epoch=5 average: train={MAE= 0.7% RMSE= 5.5%} test={MAE= 0.9% RMSE= 7.1%}
-検証: epoch=6 average: train={MAE= 0.6% RMSE= 5.5%} test={MAE= 0.9% RMSE= 7.2%}
-検証: epoch=7 average: train={MAE= 0.5% RMSE= 5.0%} test={MAE= 0.8% RMSE= 7.1%}
-検証: epoch=8 average: train={MAE= 0.4% RMSE= 4.1%} test={MAE= 0.7% RMSE= 6.7%}
-検証: epoch=9 average: train={MAE= 0.4% RMSE= 4.4%} test={MAE= 0.7% RMSE= 7.0%}
-検証: epoch=10 average: train={MAE= 0.3% RMSE= 3.7%} test={MAE= 0.7% RMSE= 6.7%}
-学習完了: 95.608秒
+検証: epoch=1 train={MAE= 1.6% RMSE= 8.8% Acc=94.8%} test={MAE= 1.6% RMSE= 9.0% Acc=94.7%}
+検証: epoch=2 train={MAE= 1.2% RMSE= 7.4% Acc=96.4%} test={MAE= 1.2% RMSE= 8.0% Acc=95.8%}
+検証: epoch=3 train={MAE= 0.9% RMSE= 6.4% Acc=97.2%} test={MAE= 1.0% RMSE= 7.6% Acc=96.3%}
+検証: epoch=4 train={MAE= 0.7% RMSE= 5.8% Acc=97.7%} test={MAE= 0.9% RMSE= 7.1% Acc=96.7%}
+検証: epoch=5 train={MAE= 0.7% RMSE= 5.5% Acc=98.0%} test={MAE= 0.9% RMSE= 7.1% Acc=96.6%}
+検証: epoch=6 train={MAE= 0.6% RMSE= 5.5% Acc=98.0%} test={MAE= 0.9% RMSE= 7.2% Acc=96.6%}
+検証: epoch=7 train={MAE= 0.5% RMSE= 5.0% Acc=98.4%} test={MAE= 0.8% RMSE= 7.1% Acc=96.8%}
+検証: epoch=8 train={MAE= 0.4% RMSE= 4.1% Acc=98.9%} test={MAE= 0.7% RMSE= 6.7% Acc=97.1%}
+検証: epoch=9 train={MAE= 0.4% RMSE= 4.4% Acc=98.8%} test={MAE= 0.7% RMSE= 7.0% Acc=96.9%}
+検証: epoch=10 train={MAE= 0.3% RMSE= 3.7% Acc=99.1%} test={MAE= 0.7% RMSE= 6.7% Acc=97.1%}
+学習完了: 100.351秒
 class[0]: 適合率=96.8% 再現率=98.6% F値=97.7% 選択率=10.0% 分布= 9.8%
 class[1]: 適合率=99.0% 再現率=98.6% F値=98.8% 選択率=11.3% 分布=11.3%
 class[2]: 適合率=98.4% 再現率=96.6% F値=97.5% 選択率=10.1% 分布=10.3%
@@ -21,4 +21,4 @@ class[7]: 適合率=97.4% 再現率=96.6% F値=97.0% 選択率=10.2% 分布=10.3%
 class[8]: 適合率=97.0% 再現率=95.5% F値=96.2% 選択率= 9.6% 分布= 9.7%
 class[9]: 適合率=96.4% 再現率=96.8% F値=96.6% 選択率=10.1% 分布=10.1%
 average:  適合率=97.1% 再現率=97.1% F値=97.1%
-検証完了: 0.0219ミリ秒/回
+検証完了: 0.0222ミリ秒/回

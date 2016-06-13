@@ -22,7 +22,7 @@ layer: FullyConnected
     0.0488, 0.591,
   ]
   weights[6]: [
-    1.21, -0.358,
+    1.21, -0.359,
   ]
   weights[7]: [
     -1, 0.758,
