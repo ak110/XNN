@@ -445,19 +445,19 @@ namespace XNN {
 
 	// Adamによるパラメータの更新
 	struct AdamOptimizer : public OptimizerBase<AdamOptimizer> {
-		unique_ptr<double[]> m, v;
+		unique_ptr<float[]> m, v;
 
-		AdamOptimizer(size_t dimension, double scale) : OptimizerBase(dimension, scale), m(new double[dimension]), v(new double[dimension]) {
-			fill(m.get(), m.get() + dimension, 0.0);
-			fill(v.get(), v.get() + dimension, 0.0);
+		AdamOptimizer(size_t dimension, double scale) : OptimizerBase(dimension, scale), m(new float[dimension]), v(new float[dimension]) {
+			fill(m.get(), m.get() + dimension, 0.0f);
+			fill(v.get(), v.get() + dimension, 0.0f);
 		}
 
 		double GetStep(size_t i, double g, uint64_t lt) {
-			const double alpha = 0.001, beta1 = 0.9, beta2 = 0.999, epsilon = 1e-8;
-			m[i] = beta1 * m[i] + (1.0 - beta1) * g;
-			v[i] = beta2 * v[i] + (1.0 - beta2) * g * g;
-			auto hm = m[i] / (1.0 - pow(beta1, lt));
-			auto hv = v[i] / (1.0 - pow(beta2, lt));
+			constexpr float alpha = 0.001f, beta1 = 0.9f, beta2 = 0.999f, epsilon = 1e-8f;
+			m[i] = beta1 * m[i] + (1.0f - beta1) * float(g);
+			v[i] = beta2 * v[i] + (1.0f - beta2) * float(g) * float(g);
+			auto hm = m[i] / (1.0f - (float)pow(beta1, lt));
+			auto hv = v[i] / (1.0f - (float)pow(beta2, lt));
 			return alpha * hm / (sqrt(hv) + epsilon);
 		}
 	};
