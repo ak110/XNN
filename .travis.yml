@@ -12,6 +12,14 @@ matrix:
       addons:
         apt:
           sources: ['ubuntu-toolchain-r-test']
+          packages: ['g++-4.8', 'libboost-dev']
+      env: COMPILER=g++-4.8
+
+    - os: linux
+      compiler: g++
+      addons:
+        apt:
+          sources: ['ubuntu-toolchain-r-test']
           packages: ['g++-5', 'libboost-dev']
       env: COMPILER=g++-5
 
@@ -20,7 +28,7 @@ matrix:
   #   addons:
   #     apt:
   #       sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-precise-3.8']
-  #       packages: ['g++-5', 'clang-3.8', 'libboost-dev']
+  #       packages: ['clang-3.8', 'libboost-dev']
   #   env: COMPILER=clang++-3.8
 
 script:

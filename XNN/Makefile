@@ -1,13 +1,8 @@
 SRCS     = $(wildcard *.cpp)
 OBJS     = $(SRCS:.cpp=.o)
-CXXFLAGS = -Wall -g -O3 -march=native -std=c++14 -fopenmp
+CXXFLAGS = -Wall -g -O3 -march=native -std=c++11 -fopenmp
 CPPFLAGS = -DNDEBUG
-LDFLAGS  = -pthread
-ifeq ($(USE_LIBIOMP), 1)
-  LDFLAGS += -liomp5
-else
-  LDFLAGS += -lgomp -fopenmp
-endif
+LDFLAGS  = -pthread -lgomp -fopenmp
 
 all: XNN
 

@@ -1,13 +1,8 @@
 SRCS     = $(wildcard *.cpp)
 OBJS     = $(SRCS:.cpp=.o) gtest/src/gtest-all.o
-CXXFLAGS = -Wall -g -O1 -march=native -std=c++14 -fopenmp
+CXXFLAGS = -Wall -g -O1 -march=native -std=c++11 -fopenmp
 CPPFLAGS = -Igtest -Igtest/include
-LDFLAGS  = -pthread
-ifeq ($(USE_LIBIOMP), 1)
-  LDFLAGS += -liomp5
-else
-  LDFLAGS += -lgomp -fopenmp
-endif
+LDFLAGS  = -pthread -lgomp -fopenmp
 
 test: XNNTest
 	cd ../XNN && "$(CURDIR)/XNNTest"
