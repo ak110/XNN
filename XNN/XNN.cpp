@@ -119,6 +119,31 @@ namespace XNN {
 		}
 	};
 
+	// 確率な値(0～1)の文字列化(小数点以下1桁、%単位)
+	struct ProbabilityFormatter {
+		int precision = 1;
+		int width = 3; // 100.0%だと4だが、レアケースなのでxx.x%に合わせる
+		string operator()(double value) const {
+			stringstream ss;
+			ss << fixed << setprecision(precision)
+				<< setw(width + precision)
+				<< value * 100 << "%";
+			return ss.str();
+		}
+	};
+	// 任意の実数の文字列化(有効数字3桁)
+	struct PlainValueFormatter {
+		int precision = 3;
+		int width = 5;
+		string operator()(double value) const {
+			stringstream ss;
+			ss << setprecision(precision)
+				<< setw(width + precision)
+				<< value;
+			return ss.str();
+		}
+	};
+
 	// 回帰の統計情報
 	struct RegressionReport {
 		mutex mtx;
@@ -126,12 +151,6 @@ namespace XNN {
 			double totalA = 0.0, total2 = 0.0;
 			size_t count = 0;
 		} values;
-		struct {
-			int precision = 1;
-			int width = 3;
-			double scale = 100;
-			string suffix = "%";
-		} formats;
 		RegressionReport() = default;
 		// ゼロクリア
 		void Clear() {
@@ -150,16 +169,14 @@ namespace XNN {
 		// RMSE(Root mean square error、二乗平均平方根誤差)を返す。
 		double GetRMSE() const { return sqrt(values.total2 / values.count); }
 		// シンプルな文字列化(改行なし、複数行不可)
-		string ToString() const {
-			stringstream ss;
-			ss << fixed << setprecision(formats.precision)
-				<< "MAE=" << setw(formats.width + formats.precision) << GetMAE() * formats.scale << formats.suffix
-				<< " RMSE=" << setw(formats.width + formats.precision) << GetRMSE() * formats.scale << formats.suffix;
-			return ss.str();
+		template<class Formatter>
+		string ToString(Formatter formatter) const {
+			return "MAE=" + formatter(GetMAE()) + " RMSE=" + formatter(GetRMSE());
 		}
 		// 詳細な文字列化(末尾に改行あり、複数行可)
-		string ToStringDetail() const {
-			return ToString() + "\n";
+		template<class Formatter>
+		string ToStringDetail(Formatter formatter) const {
+			return ToString(formatter) + "\n";
 		}
 	};
 	// クラス分類の統計情報
@@ -220,9 +237,7 @@ namespace XNN {
 		}
 		// シンプルな文字列化(改行なし、複数行不可)
 		string ToString() const {
-			stringstream ss;
-			ss << "Acc=" << fixed << setprecision(1) << setw(4) << GetAccuracy() * 100 << "%";
-			return ss.str();
+			return "Acc=" + ProbabilityFormatter()(GetAccuracy());
 		}
 		// 詳細な文字列化(末尾に改行あり、複数行可)
 		string ToStringDetail() const {
@@ -275,16 +290,11 @@ namespace XNN {
 		virtual string ToStringDetail() const = 0;
 	};
 	// 回帰
+	template<class Formatter>
 	struct RegressionScore : public IScore {
+		Formatter formatter;
 		vector<RegressionReport> reports;
-		RegressionScore(int outCount, bool logistic) : reports(outCount) {
-			if (!logistic) {
-				for (RegressionReport& rr : reports) {
-					rr.formats.scale = 1;
-					rr.formats.suffix = "";
-				}
-			}
-		}
+		RegressionScore(int outCount) : reports(outCount) {}
 		virtual void Clear() override {
 			for (auto& s : reports)
 				s.Clear();
@@ -307,9 +317,8 @@ namespace XNN {
 		}
 		virtual string ToString() const override {
 			stringstream ss;
-			ss << fixed << setprecision(reports[0].formats.precision)
-				<< "MAE=" << setw(reports[0].formats.width + reports[0].formats.precision) << GetMAE() * reports[0].formats.scale << reports[0].formats.suffix
-				<< " RMSE=" << setw(reports[0].formats.width + reports[0].formats.precision) << GetRMSE() * reports[0].formats.scale << reports[0].formats.suffix;
+			ss << "MAE=" << formatter(GetMAE())
+				<< " RMSE=" << formatter(GetRMSE());
 			return ss.str();
 		}
 		virtual string ToStringDetail() const override {
@@ -317,13 +326,14 @@ namespace XNN {
 			for (size_t o = 0; o < reports.size(); o++) {
 				if (2 <= reports.size())
 					ss << "--------------------------- out[" << o << "] ---------------------------" << endl;
-				ss << reports[o].ToStringDetail();
+				ss << reports[o].ToStringDetail(formatter);
 			}
 			return ss.str();
 		}
 	};
 	// 2クラス分類
 	struct BinaryClassificationScore : public IScore {
+		ProbabilityFormatter formatter;
 		RegressionReport regReport;
 		vector<ClassificationReport> reports;
 		BinaryClassificationScore(int outCount) : reports(outCount) {}
@@ -341,10 +351,7 @@ namespace XNN {
 		virtual double GetMAE() const override { return regReport.GetMAE(); }
 		virtual double GetRMSE() const override { return regReport.GetRMSE(); }
 		virtual string ToString() const override {
-			stringstream ss;
-			ss << regReport.ToString();
-			ss << " " << fixed << setprecision(1) << GetAccuracy() * 100 << "%";
-			return ss.str();
+			return regReport.ToString(formatter) + " Acc=" + formatter(GetAccuracy());
 		}
 		virtual string ToStringDetail() const override {
 			stringstream ss;
@@ -363,6 +370,7 @@ namespace XNN {
 	};
 	// 多クラス分類
 	struct MulticlassClassificationScore : public IScore {
+		ProbabilityFormatter formatter;
 		RegressionReport regReport;
 		ClassificationReport report;
 		MulticlassClassificationScore(int classes) : report(classes) {}
@@ -381,7 +389,7 @@ namespace XNN {
 		virtual double GetMAE() const override { return regReport.GetMAE(); }
 		virtual double GetRMSE() const override { return regReport.GetRMSE(); }
 		virtual string ToString() const override {
-			return regReport.ToString() + " " + report.ToString();
+			return regReport.ToString(formatter) + " " + report.ToString();
 		}
 		virtual string ToStringDetail() const override {
 			return report.ToStringDetail();
@@ -392,10 +400,10 @@ namespace XNN {
 	unique_ptr<IScore> CreateScore(const XNNParams& params) {
 		switch (params.objective) {
 		case XNNObjective::RegLinear:
-			return unique_ptr<IScore>(new RegressionScore(params.outUnits, false));
+			return unique_ptr<IScore>(new RegressionScore<PlainValueFormatter>(params.outUnits));
 
 		case XNNObjective::RegLogistic:
-			return unique_ptr<IScore>(new RegressionScore(params.outUnits, true));
+			return unique_ptr<IScore>(new RegressionScore<ProbabilityFormatter>(params.outUnits));
 
 		case XNNObjective::BinaryLogistic:
 			return unique_ptr<IScore>(new BinaryClassificationScore(params.outUnits));

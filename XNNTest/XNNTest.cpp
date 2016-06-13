@@ -27,6 +27,19 @@ TEST(XNN, ToStringFromString) {
 		EXPECT_EQ(XNNActivation(i), XNNActivationFromString(ToString(XNNActivation(i))));
 }
 
+TEST(Formatter, ProbabilityFormatter) {
+	EXPECT_EQ("100.0%", ProbabilityFormatter()(1.0));
+	EXPECT_EQ(" 0.0%", ProbabilityFormatter()(0.0));
+	EXPECT_EQ(" 0.1%", ProbabilityFormatter()(0.00099));
+	EXPECT_EQ("12.3%", ProbabilityFormatter()(0.1234));
+}
+
+TEST(Formatter, PlainValueFormatter) {
+	EXPECT_EQ("       1", PlainValueFormatter()(1.0));
+	EXPECT_EQ("   0.123", PlainValueFormatter()(0.1234));
+	EXPECT_EQ("1.23e+03", PlainValueFormatter()(1234));
+}
+
 namespace {
 	// 各レイヤーが基本的に満たすべき制約。出来るだけ言語仕様で縛りたいが、
 	// けちくさい高速化などのために変な仕組みになっているところも多いので…。
