@@ -30,12 +30,12 @@
   - 将棋の進行度。入力はKとP。出力は[0, 1]。(ロジスティック回帰)
 * [90_MNIST](90_MNIST)
   - [LIBSVMのサイト](https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/)から拝借したもの。多クラス分類の定番、MNIST。
-* [90_mushrooms](90_mushrooms)
-  - [LIBSVMのサイト](https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/)から拝借したもの。2クラス分類。
 * [90_splice](90_splice)
   - [LIBSVMのサイト](https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/)から拝借したもの。2クラス分類。
 * [90_svmguide1](90_svmguide1)
   - [LIBSVMのサイト](https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/)から拝借したもの。2クラス分類。
 * [90_cadata](90_cadata)
   - [LIBSVMのサイト](https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/)から拝借したもの。線形回帰。
+* [90_Tennis](90_Tennis)
+  - [@ozt-caさんのブログ記事](http://tjo.hatenablog.com/entry/2016/06/25/173437)から拝借したもの。2クラス分類。
 

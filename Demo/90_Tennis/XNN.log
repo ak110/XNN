@@ -1,0 +1,12 @@
+scale_pos_weight = 1.04583
+ネットワーク: 22:ELU - (32:ELU x 3) - 1
+検証: epoch=1 train={MAE= 5.6% RMSE=15.8% Acc=96.8%} test={MAE= 7.8% RMSE=24.3% Acc=93.1%}
+検証: epoch=2 train={MAE= 3.8% RMSE=13.2% Acc=97.3%} test={MAE= 7.9% RMSE=25.8% Acc=92.7%}
+検証: epoch=3 train={MAE= 0.4% RMSE= 1.7% Acc=100.0%} test={MAE= 9.5% RMSE=29.0% Acc=90.7%}
+検証: epoch=4 train={MAE= 0.1% RMSE= 0.6% Acc=100.0%} test={MAE= 8.9% RMSE=28.2% Acc=91.8%}
+検証: epoch=5 train={MAE= 0.1% RMSE= 0.3% Acc=100.0%} test={MAE= 9.2% RMSE=28.7% Acc=91.2%}
+学習完了: 4.418秒
+class[0]: 適合率=93.0% 再現率=93.4% F値=93.2% 選択率=50.4% 分布=50.2%
+class[1]: 適合率=93.3% 再現率=92.9% F値=93.1% 選択率=49.6% 分布=49.8%
+average:  適合率=93.1% 再現率=93.1% F値=93.1%
+検証完了: 0.00442478ミリ秒/回
