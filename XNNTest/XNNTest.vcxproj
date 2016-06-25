@@ -230,6 +230,11 @@ popd
     <ClInclude Include="gtest\include\gtest\internal\gtest-tuple.h" />
     <ClInclude Include="gtest\include\gtest\internal\gtest-type-util.h" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="OldModel.model">
+      <DeploymentContent>true</DeploymentContent>
+    </None>
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

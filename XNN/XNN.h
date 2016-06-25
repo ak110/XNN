@@ -54,25 +54,24 @@ namespace XNN {
 	XNNObjective XNNObjectiveFromString(const string& str);
 	XNNActivation XNNActivationFromString(const string& str);
 
-#pragma pack(push, 1)
 	// パラメータ
 	struct XNNParams {
 		// 目的関数
 		XNNObjective objective = XNNObjective::RegLogistic;
 		// 入力、隠れ層、出力のユニット数
-		int32_t inUnits, hiddenUnits = 32, outUnits = 1;
+		int inUnits, hiddenUnits = 32, outUnits = 1;
 		// 隠れ層の数。1で3層パーセプトロン相当。0で隠れ層無し(＝線形モデル)になる。
-		int32_t hiddenLayers = 3;
-		// 入力のスケーリングをするなら1、しないなら0
-		int32_t scaleInput = 1;
+		int hiddenLayers = 3;
+		// 入力のスケーリングをするか否か
+		bool scaleInput = true;
 		// ミニバッチのサイズ
-		int32_t miniBatchSize = 100;
+		int miniBatchSize = 100;
 		// ミニバッチの最低回数。訓練データがこの値未満なら整数倍して超えるようにして学習する。
-		int32_t minMiniBatchCount = 1000;
+		int minMiniBatchCount = 1000;
 		// 検証データのRMSEの最小値がこの回数だけ更新されなければ終了する。0なら初回で終了。
-		int32_t earlyStoppingTolerance = 3;
+		int earlyStoppingTolerance = 3;
 		// 学習の途中経過を多めに出すなら1。既定値も1。(データやネットワークが大きい時用)
-		int32_t verbose = 1;
+		int verbose = 1;
 		// 2クラス分類のときの正例(ラベルが1のデータ)の重み。
 		float scalePosWeight = -1;
 		// 隠れ層の活性化関数(ReLU or PReLU or ELU)
@@ -81,19 +80,15 @@ namespace XNN {
 		float l1 = 0, l2 = 0.01f;
 		// Dropoutする場合に、残す割合を(0, 1]で指定する。1ならDropoutしない。0.75なら3/4は残す。
 		float dropoutKeepProb = 1;
-		// BatchNormalizationするなら1、しないなら0
-		int32_t batchNormalization = 0;
+		// BatchNormalizationするか否か
+		bool batchNormalization = false;
 		// 学習を終了する最小・最大のepoch数
-		int32_t minEpoch = 1, maxEpoch = 10;
-		// 念のため互換性用(互換性は読み込みに失敗せずPredictが可能になる程度まで。学習のパラメータは随時変更してしまう。)
-		int32_t reserved[58] = {};
+		int minEpoch = 1, maxEpoch = 10;
 		// 初期化
 		XNNParams(int inUnits) : inUnits(inUnits) {}
 		XNNParams(int inUnits, int hiddenUnits, int outUnits, int hiddenLayers)
 			: inUnits(inUnits), hiddenUnits(hiddenUnits), outUnits(outUnits), hiddenLayers(hiddenLayers) {}
 	};
-#pragma pack(pop)
-	static_assert(sizeof(XNNParams) == 304, "sizeof(XNNParams)");
 
 	// 学習器
 	class XNNModel {

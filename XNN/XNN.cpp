@@ -1165,6 +1165,74 @@ namespace XNN {
 		}
 	};
 
+	// モデル(バイナリファイル)のヘッダ
+	// XNNParamsの内容をファイルに記録するための形式
+#pragma pack(push, 1)
+	struct XNNModelHeader {
+		array<char, 4> signature = { { 'X', 'N' , 'N' , 'M' } };
+		uint32_t version = 1;
+
+		typedef array<char, 16> CharArray16; // マクロのカンマ対策
+#define ITEMS(F) \
+	F(CharArray16, objective, { {} }) \
+	F(int32_t, inUnits, 0) \
+	F(int32_t, hiddenUnits, 0) \
+	F(int32_t, hiddenLayers, 0) \
+	F(int32_t, outUnits, 0) \
+	F(CharArray16, activation, { {} }) \
+	F(int32_t, scaleInput, 0) \
+	F(int32_t, batchNormalization, 0) \
+	F(float, l1, 0) \
+	F(float, l2, 0) \
+	F(float, dropoutKeepProb, 0) \
+	F(float, scalePosWeight, 0) \
+	F(int32_t, verbose, 0) \
+	F(int32_t, minEpoch, 0) \
+	F(int32_t, maxEpoch, 0) \
+	F(int32_t, miniBatchSize, 0) \
+	F(int32_t, minMiniBatchCount, 0) \
+	F(int32_t, earlyStoppingTolerance, 0) \
+	// 項目一覧のマクロ
+#define F(type, name, init) type name = init;
+		ITEMS(F)
+#undef F
+
+		array<int32_t, 102> reserved = {};
+
+		XNNModelHeader() = default;
+		void OnLoad() {
+			if (memcmp(signature.data(), "XNNM", 4) != 0)
+				throw XNNException("未対応のファイル形式です。");
+			// 今後バージョン間の互換性を保つための処理を追加する場合は以下へ。
+		}
+		void operator<<(const XNNParams& params) {
+#define F(type, name, init) Read(name, params.name);
+			ITEMS(F);
+#undef F
+		}
+		void operator>>(XNNParams& params) const {
+#define F(type, name, init) Write(name, params.name);
+			ITEMS(F);
+#undef F
+		}
+
+	private:
+		void Read(int32_t& x, int y) { x = y; }
+		void Read(int32_t& x, bool y) { x = y ? 1 : 0; }
+		void Read(float& x, float y) { x = y; }
+		void Read(CharArray16& x, XNNObjective y) { strcpy(x.data(), ToString(y).c_str()); }
+		void Read(CharArray16& x, XNNActivation y) { strcpy(x.data(), ToString(y).c_str()); }
+		void Write(int32_t x, int& y) const { y = x; }
+		void Write(int32_t x, bool& y) const { y = x != 0; }
+		void Write(float x, float& y) const { y = x; }
+		void Write(CharArray16 x, XNNObjective& y) const { y = XNNObjectiveFromString(x.data()); }
+		void Write(CharArray16 x, XNNActivation& y) const { y = XNNActivationFromString(x.data()); }
+#undef ITEMS
+	};
+#pragma pack(pop)
+	static_assert(sizeof(XNNModelHeader) == 4 * 128, "sizeof(XNNModelHeader)");
+
+	// 標準出力とファイルにログ出力するためのクラス
 	struct Logger {
 		ostream* log = nullptr;
 		template<class T>
@@ -1206,7 +1274,9 @@ namespace XNN {
 			Save(fs);
 		}
 		void Save(ostream& fs) const {
-			fs.write((const char*)&params, sizeof params);
+			XNNModelHeader header;
+			header << params;
+			fs.write((const char*)&header, sizeof header);
 			for (auto& l : layers)
 				l->Save(fs);
 		}
@@ -1214,10 +1284,17 @@ namespace XNN {
 			ifstream fs(path, ios_base::binary);
 			if (!fs)
 				throw XNNException(path + "が開けませんでした。");
-			Load(fs);
+			try {
+				Load(fs);
+			} catch (exception& e) {
+				throw XNNException(path + "の読み込み失敗: " + e.what());
+			}
 		}
 		void Load(istream& fs) {
-			fs.read((char*)&params, sizeof params);
+			XNNModelHeader header;
+			fs.read((char*)&header, sizeof header);
+			header.OnLoad();
+			header >> params;
 			Initialize();
 			for (auto& l : layers)
 				l->Load(fs);
