@@ -1,6 +1,7 @@
 XNN
 ====
 [![Build Status](https://travis-ci.org/ak110/XNN.svg?branch=master)](https://travis-ci.org/ak110/XNN)
+[![MIT License](http://img.shields.io/badge/license-MIT-blue.svg?style=flat)](LICENSE)
 
 Extremelyにしょぼい全結合NNの実装。
 
