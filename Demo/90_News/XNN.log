@@ -1,0 +1,14 @@
+ネットワーク: 58:ELU - (32:ELU x 3) - 1
+検証: epoch=1 train={MAE=   0.286 RMSE=   0.382} test={MAE=   0.293 RMSE=   0.591}
+検証: epoch=2 train={MAE=   0.281 RMSE=   0.375} test={MAE=   0.291 RMSE=   0.581}
+検証: epoch=3 train={MAE=   0.277 RMSE=   0.378} test={MAE=   0.288 RMSE=   0.576}
+検証: epoch=4 train={MAE=   0.273 RMSE=   0.368} test={MAE=   0.283 RMSE=   0.466}
+検証: epoch=5 train={MAE=   0.277 RMSE=   0.373} test={MAE=   0.283 RMSE=   0.459}
+検証: epoch=6 train={MAE=   0.273 RMSE=   0.371} test={MAE=   0.281 RMSE=   0.458}
+検証: epoch=7 train={MAE=   0.277 RMSE=   0.373} test={MAE=   0.283 RMSE=   0.444}
+検証: epoch=8 train={MAE=   0.273 RMSE=   0.374} test={MAE=   0.279 RMSE=   0.428}
+検証: epoch=9 train={MAE=   0.278 RMSE=   0.374} test={MAE=   0.283 RMSE=   0.408}
+検証: epoch=10 train={MAE=   0.274 RMSE=   0.371} test={MAE=   0.282 RMSE=   0.405}
+学習完了: 21.905秒
+MAE=   0.282 RMSE=   0.405
+検証完了: 0.0068ミリ秒/回

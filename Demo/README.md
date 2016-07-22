@@ -38,4 +38,6 @@
   - [LIBSVMのサイト](https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/)から拝借したもの。線形回帰。
 * [90_Tennis](90_Tennis)
   - [id:TJOさんの記事](http://tjo.hatenablog.com/entry/2016/06/25/173437)から拝借したもの。2クラス分類。
+* [90_News](90_News)
+  - [id:TJOさんの記事](http://tjo.hatenablog.com/entry/2016/07/21/190000)から拝借したもの。線形回帰。
 
