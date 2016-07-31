@@ -559,18 +559,20 @@ namespace XNN {
 
 	// 入力をスケーリングする層
 	struct InputScalingLayer : public ILayer {
-		uint64_t inUnits;
+		size_t inUnits;
 		vector<float> scale;
-		InputScalingLayer(uint64_t inUnits, float minScale = 1.0f) : inUnits(inUnits), scale(inUnits, minScale) {}
+		InputScalingLayer(size_t inUnits, float minScale = 1.0f) : inUnits(inUnits), scale(inUnits, minScale) {}
 		// モデルの読み込み
 		void Load(istream& s) override {
-			s.read((char*)&inUnits, sizeof inUnits);
-			scale.resize(inUnits);
+			uint64_t in;
+			s.read((char*)&in, sizeof in);
+			scale.resize(inUnits = (size_t)in);
 			s.read((char*)&scale[0], scale.size() * sizeof scale[0]);
 		}
 		// モデルの保存
 		void Save(ostream& s) const override {
-			s.write((const char*)&inUnits, sizeof inUnits);
+			uint64_t in = inUnits;
+			s.write((const char*)&in, sizeof in);
 			s.write((const char*)&scale[0], scale.size() * sizeof scale[0]);
 		}
 		// モデルの文字列化
@@ -613,20 +615,22 @@ namespace XNN {
 	// 線形回帰で極端に大きい出力とかを出すのが大変なので、
 	// 訓練データから平均・標準偏差を算出しておいてスケーリングしてしまう。
 	struct OutputScalingLayer : public ILayer {
-		uint64_t inUnits;
+		size_t inUnits;
 		vector<float> weight, bias;
-		OutputScalingLayer(uint64_t inUnits) : inUnits(inUnits), weight(inUnits, 1), bias(inUnits, 0) {}
+		OutputScalingLayer(size_t inUnits) : inUnits(inUnits), weight(inUnits, 1), bias(inUnits, 0) {}
 		// モデルの読み込み
 		void Load(istream& s) override {
-			s.read((char*)&inUnits, sizeof inUnits);
-			weight.resize(inUnits);
+			uint64_t in;
+			s.read((char*)&in, sizeof in);
+			weight.resize(inUnits = (size_t)in);
 			bias.resize(inUnits);
 			s.read((char*)&weight[0], weight.size() * sizeof weight[0]);
 			s.read((char*)&bias[0], bias.size() * sizeof bias[0]);
 		}
 		// モデルの保存
 		void Save(ostream& s) const override {
-			s.write((const char*)&inUnits, sizeof inUnits);
+			uint64_t in = inUnits;
+			s.write((const char*)&in, sizeof in);
 			s.write((const char*)&weight[0], weight.size() * sizeof weight[0]);
 			s.write((const char*)&bias[0], bias.size() * sizeof bias[0]);
 		}
@@ -672,26 +676,28 @@ namespace XNN {
 
 	// 全層結合層
 	struct FullyConnectedLayer : public ILayer {
-		uint64_t inUnits, outUnits;
+		size_t inUnits, outUnits;
 		double inputNorm;
 		vector<float> weights, biases;
-		FullyConnectedLayer(uint64_t inUnits, uint64_t outUnits) : inUnits(inUnits), outUnits(outUnits) {
+		FullyConnectedLayer(size_t inUnits, size_t outUnits) : inUnits(inUnits), outUnits(outUnits) {
 			weights.resize(inUnits * outUnits);
 			biases.resize(outUnits);
 		}
 		// モデルの読み込み
 		void Load(istream& s) override {
-			s.read((char*)&inUnits, sizeof inUnits);
-			s.read((char*)&outUnits, sizeof outUnits);
-			weights.resize(inUnits * outUnits);
+			uint64_t in, out;
+			s.read((char*)&in, sizeof in);
+			s.read((char*)&out, sizeof out);
+			weights.resize((inUnits = (size_t)in) * (outUnits = (size_t)out));
 			biases.resize(outUnits);
 			s.read((char*)&weights[0], weights.size() * sizeof weights[0]);
 			s.read((char*)&biases[0], biases.size() * sizeof biases[0]);
 		}
 		// モデルの保存
 		void Save(ostream& s) const override {
-			s.write((const char*)&inUnits, sizeof inUnits);
-			s.write((const char*)&outUnits, sizeof outUnits);
+			uint64_t in = inUnits, out = inUnits;
+			s.write((const char*)&in, sizeof in);
+			s.write((const char*)&out, sizeof out);
 			s.write((const char*)&weights[0], weights.size() * sizeof weights[0]);
 			s.write((const char*)&biases[0], biases.size() * sizeof biases[0]);
 		}
@@ -793,7 +799,7 @@ namespace XNN {
 	// 活性化関数レイヤー
 	template<XNNActivation Act>
 	struct ActivationLayer : public ILayer {
-		ActivationLayer(uint64_t inUnits) {}
+		ActivationLayer(size_t inUnits) {}
 		// モデルの文字列化
 		void Dump(Dumper& d) const override {
 			d.AddLayer("Activation");
@@ -866,18 +872,20 @@ namespace XNN {
 	};
 	template<>
 	struct ActivationLayer<XNNActivation::PReLU> : public ILayer {
-		const uint64_t inUnits;
+		size_t inUnits;
 		vector<float> weights;
-		ActivationLayer(uint64_t inUnits) : inUnits(inUnits), weights(inUnits, 0.25f) {}
+		ActivationLayer(size_t inUnits) : inUnits(inUnits), weights(inUnits, 0.25f) {}
 		// モデルの読み込み
 		void Load(istream& s) override {
-			s.read((char*)&inUnits, sizeof inUnits);
-			weights.resize(inUnits);
+			uint64_t in;
+			s.read((char*)&in, sizeof in);
+			weights.resize(inUnits = (size_t)in);
 			s.read((char*)&weights[0], weights.size() * sizeof weights[0]);
 		}
 		// モデルの保存
 		void Save(ostream& s) const override {
-			s.write((const char*)&inUnits, sizeof inUnits);
+			uint64_t in = inUnits;
+			s.write((const char*)&in, sizeof in);
 			s.write((const char*)&weights[0], weights.size() * sizeof weights[0]);
 		}
 		// モデルの文字列化
@@ -942,21 +950,23 @@ namespace XNN {
 	};
 	// BatchNormalization
 	struct BatchNormalizationLayer : public ILayer {
-		const uint64_t inUnits;
+		size_t inUnits;
 		vector<float> weights;
 		vector<float> biases;
-		BatchNormalizationLayer(uint64_t inUnits) : inUnits(inUnits), weights(inUnits, 1.0f), biases(inUnits, 0.0f) {}
+		BatchNormalizationLayer(size_t inUnits) : inUnits(inUnits), weights(inUnits, 1.0f), biases(inUnits, 0.0f) {}
 		// モデルの読み込み
 		void Load(istream& s) override {
-			s.read((char*)&inUnits, sizeof inUnits);
-			weights.resize(inUnits);
+			uint64_t in;
+			s.read((char*)&in, sizeof in);
+			weights.resize(inUnits = (size_t)in);
 			biases.resize(inUnits);
 			s.read((char*)&weights[0], weights.size() * sizeof weights[0]);
 			s.read((char*)&biases[0], biases.size() * sizeof biases[0]);
 		}
 		// モデルの保存
 		void Save(ostream& s) const override {
-			s.write((const char*)&inUnits, sizeof inUnits);
+			uint64_t in = inUnits;
+			s.write((const char*)&in, sizeof in);
 			s.write((const char*)&weights[0], weights.size() * sizeof weights[0]);
 			s.write((const char*)&biases[0], biases.size() * sizeof biases[0]);
 		}
@@ -1095,9 +1105,9 @@ namespace XNN {
 	};
 	// Dropout
 	struct DropoutLayer : public ILayer {
-		const uint64_t inUnits;
+		const size_t inUnits;
 		const float keepProb;
-		DropoutLayer(uint64_t inUnits, float keepProb) : inUnits(inUnits), keepProb(keepProb) {}
+		DropoutLayer(size_t inUnits, float keepProb) : inUnits(inUnits), keepProb(keepProb) {}
 		// モデルの文字列化
 		void Dump(Dumper& d) const override {
 			d.AddLayer("Dropout");
@@ -1110,7 +1120,7 @@ namespace XNN {
 		struct Trainer : public NullLayerTrainer {
 			mt19937_64 rnd;
 			vector<unique_ptr<bool[]>> keepFlags;
-			Trainer(mt19937_64& rnd, uint64_t inUnits) : rnd(rnd()) {}
+			Trainer(mt19937_64& rnd, size_t inUnits) : rnd(rnd()) {}
 		};
 		// 学習するクラスを作る
 		unique_ptr<ILayerTrainer> CreateTrainer(const XNNParams& params, mt19937_64& rnd) {
@@ -1475,7 +1485,7 @@ namespace XNN {
 					}
 					// 切り捨てなので足りない場合があるので、その場合は最も端数が大きいものを1個増やす
 					while (true) {
-						size_t n = accumulate(classes.begin(), classes.end(), 0ull,
+						size_t n = accumulate(classes.begin(), classes.end(), (size_t)0,
 							[](size_t x, const ClassInfo& ci) { return x + ci.picking; });
 						assert((int)n <= params.miniBatchSize);
 						if (params.miniBatchSize <= (int)n)
@@ -1764,7 +1774,7 @@ namespace XNN {
 						throw XNNException("特徴のインデックスが" + to_string(fMinIndex) + "未満: 行の内容=" + line);
 					if (inUnits + fMinIndex <= index)
 						throw XNNException("特徴のインデックスが" + to_string(inUnits + fMinIndex) + "以上: 行の内容=" + line);
-					data.in[index - fMinIndex] = stof(token.substr(coron + 1));
+					data.in[(size_t)(index - fMinIndex)] = stof(token.substr(coron + 1));
 				}
 			}
 			result.emplace_back(move(data));
