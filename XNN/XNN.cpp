@@ -566,7 +566,8 @@ namespace XNN {
 		void Load(istream& s) override {
 			uint64_t in;
 			s.read((char*)&in, sizeof in);
-			scale.resize(inUnits = (size_t)in);
+			if (in != inUnits)
+				throw XNNException("モデルの読み込み失敗: InputScalingLayer: inUnits=" + to_string(inUnits) + "⇔" + to_string(in));
 			s.read((char*)&scale[0], scale.size() * sizeof scale[0]);
 		}
 		// モデルの保存
@@ -622,8 +623,8 @@ namespace XNN {
 		void Load(istream& s) override {
 			uint64_t in;
 			s.read((char*)&in, sizeof in);
-			weight.resize(inUnits = (size_t)in);
-			bias.resize(inUnits);
+			if (in != inUnits)
+				throw XNNException("モデルの読み込み失敗: OutputScalingLayer: inUnits=" + to_string(inUnits) + "⇔" + to_string(in));
 			s.read((char*)&weight[0], weight.size() * sizeof weight[0]);
 			s.read((char*)&bias[0], bias.size() * sizeof bias[0]);
 		}
@@ -688,14 +689,16 @@ namespace XNN {
 			uint64_t in, out;
 			s.read((char*)&in, sizeof in);
 			s.read((char*)&out, sizeof out);
-			weights.resize((inUnits = (size_t)in) * (outUnits = (size_t)out));
-			biases.resize(outUnits);
+			if (in != inUnits)
+				throw XNNException("モデルの読み込み失敗: FullyConnectedLayer: inUnits=" + to_string(inUnits) + "⇔" + to_string(in));
+			if (out != outUnits)
+				throw XNNException("モデルの読み込み失敗: FullyConnectedLayer: outUnits=" + to_string(outUnits) + "⇔" + to_string(out));
 			s.read((char*)&weights[0], weights.size() * sizeof weights[0]);
 			s.read((char*)&biases[0], biases.size() * sizeof biases[0]);
 		}
 		// モデルの保存
 		void Save(ostream& s) const override {
-			uint64_t in = inUnits, out = inUnits;
+			uint64_t in = inUnits, out = outUnits;
 			s.write((const char*)&in, sizeof in);
 			s.write((const char*)&out, sizeof out);
 			s.write((const char*)&weights[0], weights.size() * sizeof weights[0]);
@@ -879,7 +882,8 @@ namespace XNN {
 		void Load(istream& s) override {
 			uint64_t in;
 			s.read((char*)&in, sizeof in);
-			weights.resize(inUnits = (size_t)in);
+			if (in != inUnits)
+				throw XNNException("モデルの読み込み失敗: ActivationLayer<XNNActivation::PReLU>: inUnits=" + to_string(inUnits) + "⇔" + to_string(in));
 			s.read((char*)&weights[0], weights.size() * sizeof weights[0]);
 		}
 		// モデルの保存
@@ -958,8 +962,8 @@ namespace XNN {
 		void Load(istream& s) override {
 			uint64_t in;
 			s.read((char*)&in, sizeof in);
-			weights.resize(inUnits = (size_t)in);
-			biases.resize(inUnits);
+			if (in != inUnits)
+				throw XNNException("モデルの読み込み失敗: BatchNormalizationLayer: inUnits=" + to_string(inUnits) + "⇔" + to_string(in));
 			s.read((char*)&weights[0], weights.size() * sizeof weights[0]);
 			s.read((char*)&biases[0], biases.size() * sizeof biases[0]);
 		}
